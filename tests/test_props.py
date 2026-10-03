@@ -117,7 +117,7 @@ class PropertyTests(unittest.TestCase):
     def test_reference_comparison_with_range(self):
         # A deliberately wrong equality: spans that are both empty should be equal, like empty ranges.
         found = propcheck.check_reference(_load_span(), "span", [((1, 4), {})], __import__("random").Random(0),
-                                          {"reference"}, __import__("time").time() + 5)
+                                          {"reference"})
         self.assertTrue(found and found[0][0] == "reference", found)
 
     def test_recheck_reports_a_mutant_the_new_test_does_not_kill(self):

@@ -6,15 +6,15 @@ calls the function with variations of those arguments and checks properties ever
 must keep. Counterexamples are written to a JSON file. Nothing here is advice: each finding is a call
 that was made and a result that was observed.
 
-Properties (templates); the project's adopted subset is passed in MIHAD_PROP_TEMPLATES:
-    len          len(x) equals the number of items iteration yields
-    reversed     reversed(x) yields exactly the items of x in reverse order
-    getitem      x[i] equals the i-th item yielded, for positive and negative i
-    contains     every yielded item is `in` x, and x.index(item) finds it
-    eq_hash      equal objects have equal hashes
+Properties come from the contract ontology (contracts.py): each object is classified by its interfaces
+(sequence, mapping, set, stream, value) and checked against the contract of its kind only. Besides:
     reference    an object whose docstring calls it an extension of a built-in (range) behaves like
                  the built-in where both accept the arguments (items, len, equality, hashing)
     single_pass  a function given an iterable opens it only once (iter() called once)
+The project's adopted templates are passed in MIHAD_PROP_TEMPLATES.
+
+Objects checked: those made by calling the target with variations of its test calls, and (for classes)
+the instances the tests themselves built and changed, in the state the tests left them.
 
 Argument variations come from the seeds: numbers are replaced by random numbers of the same type and
 sign, and for any three numbers (a, b, c) also by b = a + k*c, the boundaries of an arithmetic
@@ -22,12 +22,19 @@ progression where off-by-one errors live.
 """
 import functools
 import inspect
+
+try:
+    from . import contracts
+except ImportError:  # loaded as a top-level module
+    import contracts
 import itertools
 import json
 import os
+import pickle
 import random
 import sys
 import time
+import weakref
 
 CAP = 2000          # items materialized from one object
 SEEDS = 12          # distinct seed calls per target
@@ -111,78 +118,7 @@ def variations(args, rng):
     return out
 
 
-# ------------------------------------------------------------------ properties of an object
-
-def check_object(obj, label, templates):
-    """Counterexamples for the sequence-like properties of one object (an instance or a result)."""
-    found = []
-    has_len = hasattr(type(obj), "__len__")
-    if not hasattr(type(obj), "__iter__") or isinstance(obj, (str, bytes)):
-        return found
-    try:
-        items = _materialize(obj)
-    except Exception:
-        return found
-    if items is None:
-        return found
-    if "len" in templates and has_len:
-        try:
-            n = len(obj)
-            if n != len(items):
-                found.append(("len", f"{label}: len() is {n}, but iterating yields {len(items)} items"))
-        except Exception as exc:
-            found.append(("len", f"{label}: len() raised {type(exc).__name__}: {exc}, but iterating yields "
-                                 f"{len(items)} items"))
-    if "reversed" in templates and hasattr(type(obj), "__reversed__"):
-        try:
-            rev = list(itertools.islice(reversed(obj), CAP + 1))
-            if rev != items[::-1]:
-                diff = next((i for i, (a, b) in enumerate(zip(rev, items[::-1])) if a != b), min(len(rev), len(items)))
-                got = rev[diff] if diff < len(rev) else "(nothing)"
-                want = items[::-1][diff] if diff < len(items) else "(nothing)"
-                found.append(("reversed", f"{label}: reversed() yields {_short(got)} at position {diff}, "
-                                          f"but the items in reverse order have {_short(want)} there"))
-        except Exception:
-            pass
-    if "getitem" in templates and has_len and hasattr(type(obj), "__getitem__") and items:
-        for i in sorted({0, len(items) - 1, len(items) // 2, -1, -len(items)}):
-            try:
-                if obj[i] != items[i]:
-                    found.append(("getitem", f"{label}: x[{i}] is {_short(obj[i])}, but item {i} of the "
-                                             f"iteration is {_short(items[i])}"))
-                    break
-            except Exception as exc:
-                found.append(("getitem", f"{label}: x[{i}] raised {type(exc).__name__}: {exc}"))
-                break
-    if "contains" in templates and hasattr(type(obj), "__contains__"):
-        for i, it in enumerate(items[:40]):
-            try:
-                if it not in obj:
-                    found.append(("contains", f"{label}: {_short(it)} is yielded (item {i}) but `in` says False"))
-                    break
-                if hasattr(obj, "index") and items.index(it) != obj.index(it):
-                    found.append(("contains", f"{label}: index({_short(it)}) is {obj.index(it)}, but the "
-                                              f"item is yielded at position {items.index(it)}"))
-                    break
-            except Exception as exc:
-                found.append(("contains", f"{label}: checking item {_short(it)} raised {type(exc).__name__}: {exc}"))
-                break
-    return found
-
-
-def check_eq_hash(objs, templates):
-    if "eq_hash" not in templates:
-        return []
-    for (la, a), (lb, b) in itertools.combinations(objs, 2):
-        try:
-            if a == b and hash(a) != hash(b):
-                return [("eq_hash", f"{la} == {lb}, but their hashes differ")]
-        except TypeError:
-            return []
-        except Exception:
-            continue
-    return []
-
+# ------------------------------------------------------------------ reference twin
 
 REFERENCES = {"range": range}
 
@@ -195,7 +131,7 @@ def reference_of(target):
     return None
 
 
-def check_reference(cls, name, seeds, rng, templates, deadline):
+def check_reference(cls, name, seeds, rng, templates):
     """Compare a class with the built-in its docstring names, on integer arguments both accept."""
     if "reference" not in templates:
         return []
@@ -212,9 +148,7 @@ def check_reference(cls, name, seeds, rng, templates, deadline):
             pool.append((args, cls(*args), rfun(*args)))
         except Exception:
             continue
-    for args, mine, theirs in pool:
-        if time.time() > deadline:
-            break
+    for args, mine, theirs in pool:  # bounded by count (no deadline): both runs try the same calls
         label = _call_text(name, args, {})
         try:
             if list(mine) != list(theirs):
@@ -224,8 +158,6 @@ def check_reference(cls, name, seeds, rng, templates, deadline):
         except Exception:
             continue
     for (a1, m1, t1), (a2, m2, t2) in itertools.combinations(pool[:120], 2):
-        if time.time() > deadline:
-            break
         try:
             if (m1 == m2) != (t1 == t2):
                 return [("reference", f"{_call_text(name, a1, {})} == {_call_text(name, a2, {})} is {m1 == m2}, "
@@ -270,16 +202,29 @@ def check_single_pass(fn, name, seeds, templates):
 
 # ------------------------------------------------------------------ driver
 
+def _caller_module(depth=2):
+    try:
+        return sys._getframe(depth).f_globals.get("__name__", "")
+    except ValueError:
+        return ""
+
+
 class Target:
-    def __init__(self, module, name, obj, templates, out_path):
+    def __init__(self, module, name, obj, templates, out_path, replay=None):
         self.module, self.name, self.obj = module, name, obj
         self.templates, self.out_path = templates, out_path
         self.seeds, self.keys, self.findings = [], set(), []
         self.rng = random.Random(1234)
         self.done = False
+        self.live = []  # weak references to instances the tests built (classes), checked as the tests left them
+        self.replayed = replay is not None
+        if replay is not None:  # the run on the starting commit replays exactly the seeds of the run on the change
+            self.seeds = replay
 
     def add_seed(self, args, kwargs):
-        if self.done or len(self.seeds) >= SEEDS:
+        # Only calls made by the tests count: the library calling itself (e.g. type(self)(...) inside a method)
+        # depends on the code under test, so the two runs would see different seeds.
+        if self.done or self.replayed or len(self.seeds) >= SEEDS or _caller_module(3) == self.module:
             return
         key = tuple((type(a).__name__, (a > 0) - (a < 0) if _num(a) else None) for a in args) + tuple(sorted(kwargs))
         if key in self.keys:
@@ -288,19 +233,35 @@ class Target:
         # Copies: the function under test may consume or change its arguments.
         self.seeds.append((tuple(list(a) if isinstance(a, list) else a for a in args), dict(kwargs)))
 
+    def add_live(self, obj):
+        if self.done or len(self.live) >= 30 or _caller_module(3) == self.module:
+            return
+        try:
+            self.live.append(weakref.ref(obj))
+        except TypeError:
+            pass  # no weak references (e.g. __slots__ without __weakref__): skip rather than keep it alive
+
     def run(self):
         if self.done or not self.seeds:
+            self.save([])
             return
         self.done = True
         found = []
         self.save(found)
         is_class = inspect.isclass(self.obj)
-        if is_class:  # cheap and decisive, so first and with its own budget
-            found += check_reference(self.obj, self.name, self.seeds, self.rng, self.templates, time.time() + BUDGET)
+        if is_class:
+            found += check_reference(self.obj, self.name, self.seeds, self.rng, self.templates)
         else:
             found += check_single_pass(self.obj, self.name, self.seeds, self.templates)
         made = []
-        # Bounded by count, not time, so the run on the starting commit tries exactly the same calls.
+
+        def add(fs):
+            for f in fs:
+                if f[0] not in {k for k, _ in found}:
+                    found.append(f)
+                    self.save(found)
+        # Bounded by count, not time, and the same seeds on both runs: the run on the starting commit tries
+        # exactly the same calls.
         per_seed = max(20, VARIANTS * 2 // max(1, len(self.seeds)))
         for args, kwargs in self.seeds:
             for v in ([args] + variations(args, self.rng))[:per_seed]:
@@ -310,15 +271,18 @@ class Target:
                     x = self.obj(*v, **kwargs)
                 except Exception:
                     continue
-                label = _call_text(self.name, v, kwargs)
                 if not is_class and inspect.isgenerator(x):
                     continue
+                label = _call_text(self.name, v, kwargs)
                 made.append((label, x))
-                for f in check_object(x, label, self.templates):
-                    if f[0] not in {k for k, _ in found}:
-                        found.append(f)
-                        self.save(found)
-        found += check_eq_hash(made[:200], self.templates)
+                add(contracts.check(x, label, self.templates, others=made[-6:-1]))
+        live = [r() for r in self.live]
+        live = [x for x in live if x is not None]
+        for i, x in enumerate(live):
+            label = f"{self.name} instance #{i + 1} as a test left it ({contracts._short(x, 50)})"
+            others = [(f"{self.name} instance #{j + 1}", o) for j, o in enumerate(live) if o is not x][:4] + made[:4]
+            add(contracts.check(x, label, self.templates, others=others))
+        add(contracts.values([(lb, x) for lb, x in made if "value" in contracts.kinds(x)][:200], self.templates))
         self.save(found)
 
     def save(self, found):
@@ -331,9 +295,21 @@ class Target:
         self.findings = out  # all kinds: the comparison with the starting commit needs every one
         try:
             with open(self.out_path, "w", encoding="utf-8") as fh:
-                json.dump({"function": self.name, "seeds": len(self.seeds), "findings": self.findings}, fh)
+                json.dump({"function": self.name, "seeds": len(self.seeds), "replayed": self.replayed,
+                           "done": self.done, "findings": self.findings}, fh)
         except OSError:
             pass
+        if not self.replayed:
+            try:  # the seeds, for the run on the starting commit
+                with open(self.out_path + ".seeds", "wb") as fh:
+                    pickle.dump(self.seeds, fh)
+            except Exception:
+                pass
+
+
+def _plain_function(obj):
+    return (inspect.isfunction(obj) and not inspect.iscoroutinefunction(obj)
+            and not inspect.isgeneratorfunction(obj) and not inspect.isasyncgenfunction(obj))
 
 
 def install():
@@ -341,6 +317,9 @@ def install():
     spec = json.loads(os.environ.get("MIHAD_PROP_TARGETS", "[]"))
     templates = set(json.loads(os.environ.get("MIHAD_PROP_TEMPLATES", "[]")))
     out_dir = os.environ.get("MIHAD_PROP_OUT", "")
+    seeds_from = os.environ.get("MIHAD_PROP_SEEDS_FROM", "")
+    # Subprocesses the tests start inherit this environment: only this process checks.
+    os.environ["MIHAD_PROP_TARGETS"] = "[]"
     targets = []
     import importlib
     for module, name in spec:
@@ -349,24 +328,53 @@ def install():
             obj = getattr(m, name)
         except Exception:
             continue
-        t = Target(module, name, obj, templates, os.path.join(out_dir, f"{module}.{name}.json"))
+        replay = None
+        if seeds_from:
+            try:
+                with open(os.path.join(seeds_from, f"{module}.{name}.json.seeds"), "rb") as fh:
+                    replay = pickle.load(fh)
+            except Exception:
+                replay = []  # nothing to replay: the comparison is unknown, not "no failure at the start"
+        t = Target(module, name, obj, templates, os.path.join(out_dir, f"{module}.{name}.json"), replay)
         targets.append(t)
         if inspect.isclass(obj):
-            orig_init = obj.__init__
+            if "__init__" in vars(obj):
+                orig_init = obj.__init__
 
-            @functools.wraps(orig_init)
-            def init(self, *a, __orig=orig_init, __t=t, __cls=obj, **k):
-                __orig(self, *a, **k)
-                if type(self) is __cls:
+                @functools.wraps(orig_init)
+                def init(self, *a, __orig=orig_init, __t=t, __cls=obj, **k):
+                    __orig(self, *a, **k)
+                    if type(self) is __cls:
+                        __t.add_seed(a, k)
+                        __t.add_live(self)
+                try:
+                    obj.__init__ = init
+                except (TypeError, AttributeError):
+                    continue
+            elif "__new__" in vars(obj):  # immutable classes (tuple subclasses) build in __new__
+                orig_new = obj.__new__
+
+                def new(cls, *a, __orig=orig_new, __t=t, __cls=obj, **k):
+                    inst = __orig(cls, *a, **k)
+                    if cls is __cls:
+                        __t.add_seed(a, k)
+                        __t.add_live(inst)
+                    return inst
+                try:
+                    obj.__new__ = staticmethod(new)
+                except (TypeError, AttributeError):
+                    continue
+        elif _plain_function(obj) or (inspect.isgeneratorfunction(obj) and not inspect.isasyncgenfunction(obj)):
+            if inspect.isgeneratorfunction(obj):
+                # A generator wrapper keeps the function a generator function (inspect sees the same kind)
+                # and keeps it lazy, like the original.
+                def wrapper(*a, __f=obj, __t=t, **k):
                     __t.add_seed(a, k)
-            try:
-                obj.__init__ = init
-            except (TypeError, AttributeError):
-                continue
-        else:
-            def wrapper(*a, __f=obj, __t=t, **k):
-                __t.add_seed(a, k)
-                return __f(*a, **k)
+                    return (yield from __f(*a, **k))
+            else:
+                def wrapper(*a, __f=obj, __t=t, **k):
+                    __t.add_seed(a, k)
+                    return __f(*a, **k)
             functools.update_wrapper(wrapper, obj)
             for mm in list(sys.modules.values()):
                 try:
@@ -382,9 +390,12 @@ def install():
 
             def watchdog():  # a check stuck on an infinite input must not hold the test process
                 time.sleep(2 * BUDGET * len(targets) + 5)
-                os._exit(0)
+                os._exit(0)  # the exit code of this run is never used: the tests' result comes from other runs
             threading.Thread(target=watchdog, daemon=True).start()
             for t in targets:
-                t.run()
+                try:
+                    t.run()
+                except Exception:
+                    t.save(list((f["template"], f["detail"]) for f in t.findings))
         atexit.register(finish)
     return targets

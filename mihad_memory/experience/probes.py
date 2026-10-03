@@ -131,6 +131,20 @@ def _ops(lang):
     return [m for m in MUTATIONS if m[0] not in PYTHON_ONLY] + C_FAMILY_MUTATIONS
 
 
+def _string_statement_lines(source):
+    """Lines of string statements (docstrings), which mutation must skip."""
+    import ast
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return set()
+    out = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+            out.update(range(node.lineno, (node.end_lineno or node.lineno) + 1))
+    return out
+
+
 PY_COND = re.compile(r"^(\s*)(if|elif|while)\s+(.+?):(\s*(#.*)?)$")
 C_COND = re.compile(r"^(\s*(?:\}\s*else\s+)?)(if|while)\s*\((.+)\)(\s*\{?\s*)$")
 
@@ -172,10 +186,13 @@ def mutation_adequacy(ws, cfg, budget=MUTATION_BUDGET, max_mutants=MAX_MUTANTS, 
     for path, lines in lines_by_file.items():
         lang = langs.language_of(path)
         prefixes = langs.comment_prefixes(lang)
-        text = (ws / path).read_text(encoding="utf-8", errors="replace").splitlines(keepends=True)
+        source = (ws / path).read_text(encoding="utf-8", errors="replace")
+        text = source.splitlines(keepends=True)
+        docs = _string_statement_lines(source) if lang in (None, "python") else set()
         for ln in lines:
             s = text[ln - 1].strip() if ln - 1 < len(text) else ""
-            if not s or s.startswith(prefixes) or s.startswith(("def ", "class ", "import ", "from ", "@")):
+            if not s or s.startswith(prefixes) or s.startswith(("def ", "class ", "import ", "from ", "@")) \
+                    or ln in docs:  # a docstring line turned into `pass` still compiles: no test can see it
                 continue
             mutated_line = mutate_line(text[ln - 1], lang)  # one mutant per line keeps it fast and spread out
             if mutated_line and mutated_line != text[ln - 1]:
@@ -388,7 +405,8 @@ def _probe_run(ws, root, module, name, ids):
 
 # ---------------------------------------------------------------- 5. property checks (Python)
 
-TEMPLATES = ("len", "reversed", "getitem", "contains", "eq_hash", "reference", "single_pass")
+TEMPLATES = ("len", "reversed", "getitem", "slice", "contains", "m_keys", "m_get", "m_copy", "s_len", "s_ops",
+             "s_compare", "seek_tell", "read_end", "eq_hash", "eq_symmetric", "reference", "single_pass")
 PROP_SITECUSTOMIZE = "from mihad_memory.experience import propcheck as _p\n_p.install()\n"
 
 
@@ -425,73 +443,96 @@ def prop_targets(ws):
     return out
 
 
-def prop_run(ws, root, targets, templates, ids):
-    """Run the tests with the property checks loaded; {function: [findings]}."""
+def prop_run(ws, root, targets, templates, ids, out, seeds_from=None):
+    """Run the tests with the property checks loaded, writing to `out`; {function: result}. With seeds_from
+    (the `out` of an earlier run), the checks replay exactly that run's seeds instead of collecting new ones."""
     with tempfile.TemporaryDirectory() as tmp:
         (Path(tmp) / "sitecustomize.py").write_text(PROP_SITECUSTOMIZE, encoding="utf-8")
-        out = Path(tmp) / "out"
-        out.mkdir()
+        out.mkdir(parents=True, exist_ok=True)
         env = dict(os.environ, MIHAD_PROP_TARGETS=json.dumps([[m, n] for m, n, _ in targets]),
                    MIHAD_PROP_TEMPLATES=json.dumps(templates), MIHAD_PROP_OUT=str(out),
+                   MIHAD_PROP_SEEDS_FROM=str(seeds_from or ""), PYTHONHASHSEED="0",
                    PYTHONPATH=os.pathsep.join([tmp, str(root), str(ws), str(project.MIHAD_ROOT),
                                                os.environ.get("PYTHONPATH", "")]))
         run_tests(ws, ids, env=env)
-        res = {}
-        for f in out.glob("*.json"):
-            try:
-                d = json.loads(f.read_text(encoding="utf-8"))
-                res[d["function"]] = d["findings"]
-            except (ValueError, KeyError):
-                continue
-        return res
+    res = {}
+    for f in out.glob("*.json"):
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+            res[d["function"]] = d
+        except (ValueError, KeyError):
+            continue
+    return res
 
 
-# Words in a task that make an already-existing property failure relevant to it.
-RELEVANCE = {"len": ("len", "length", "size", "count"), "reversed": ("revers",),
-             "getitem": ("index", "getitem", "slice", "item"), "contains": ("contain", "index", "membership"),
-             "eq_hash": ("eq", "hash", "equal"),
-             "reference": ("eq", "hash", "equal", "consistent", "match", "behav", "like"),
-             "single_pass": ("iter", "reuse", "stream", "once", "consum", "generator")}
+# Task metadata: the behaviours a task is about, from its text (a fixed taxonomy; the same behaviour names
+# as contracts.BEHAVIOUR). A failure the starting commit already had is reported only for these.
+TASK_BEHAVIOURS = {
+    "length": r"__len__|\blen\b|\blength|\bsize\b|\bcount\b",
+    "reversal": r"__reversed__|\brevers",
+    "indexing": r"\bindex|getitem|\bnegative\b|\blookup|\[-?\d+\]",
+    "slicing": r"\bslic",
+    "membership": r"\bcontains?\b|__contains__|membership|\bkeys?\b",
+    "copying": r"__copy__|__deepcopy__|\bcopy|deepcopy|\bpickl",
+    "set_ops": r"\bunion|\bintersect|\bdifference|\bsubset|\bsuperset|issub|issup|\bupdate\b|symmetric",
+    "seeking": r"\bseek|\btell\b|\brewind|\boffset",
+    "termination": r"\bterminat|\bhangs?\b|\binfinite|\bloops?\b|\beof\b|end of file|\bforever\b|"
+                   r"non-?advancing",
+    "equality": r"__eq__|\beq\b|\bequal|\bcompar",
+    "hashing": r"__hash__|\bhash",
+    "iteration": r"__iter__|__next__|\biterat|\biterable|\bstream|\bgenerator|\breuse|\bconsum|\bonce\b",
+}
+
+
+def task_behaviours(task_text):
+    text = task_text or ""
+    return {b for b, pat in TASK_BEHAVIOURS.items() if re.search(pat, text, re.I)}
 
 
 def relevant(template, task_text):
     if not task_text:
         return True
-    text = task_text.lower()
-    return any(w in text for w in RELEVANCE.get(template, ()))
+    from .contracts import BEHAVIOUR
+    return BEHAVIOUR.get(template) in task_behaviours(task_text)
 
 
 def property_checks(ws, cfg, templates=None, task_text=None):
-    """Counterexamples to properties of the changed functions, found by calling them with variations of
-    the arguments their tests use. Reported even when the starting commit fails too: the changed
-    function is what the task is about, and the counterexample may be the bug itself."""
+    """Counterexamples to the contracts of the changed functions and classes, found by calling them with
+    variations of the arguments their tests use, and on the instances the tests built. Both runs work on
+    copies (the checks call the code many times; the agent's workspace must not change). The run on the
+    starting commit replays exactly the same seeds. A failure the change introduced is always reported;
+    one the starting commit has too only when the task is about that behaviour; when the comparison could
+    not be made (no seeds replayed, the run did not finish) it counts as "at the start" (the cautious side)."""
     ws = Path(ws)
     templates = templates if templates is not None else adopted_templates(cfg)
     targets = prop_targets(ws)
     if not targets or not templates:
         return []
     ids = test_ids(ws, cfg, sorted({n for _, n, _ in targets}), changed_tests(ws, cfg))
-    root = targets[0][2]
-    now = prop_run(ws, root, targets, templates, ids)
-    if not any(now.values()):
-        return []
-    rel_root = root.relative_to(ws)
+    rel_root = targets[0][2].relative_to(ws)
     with tempfile.TemporaryDirectory() as tmp:
-        base = copy_workspace(ws, Path(tmp) / "ws")
-        for path in added_lines(ws):
-            head = git(ws, "show", f"HEAD:{path}", check=False)
-            if head:
-                (base / path).write_text(head, encoding="utf-8")
-        before = prop_run(base, base / rel_root, targets, templates, ids)
+        tmp = Path(tmp)
+        cur = copy_workspace(ws, tmp / "now")
+        now = prop_run(cur, cur / rel_root, targets, templates, ids, tmp / "out_now")
+        if not any(d.get("findings") for d in now.values()):
+            return []
+        base = copy_workspace(ws, tmp / "base")
+        changed = git(ws, "diff", "HEAD", "--name-only", check=False).splitlines()
+        for path in changed:
+            if is_lib(path, ws):
+                head = git(ws, "show", f"HEAD:{path}", check=False)
+                if head:
+                    (base / path).write_text(head, encoding="utf-8")
+        before = prop_run(base, base / rel_root, targets, templates, ids, tmp / "out_base", seeds_from=tmp / "out_now")
     out = []
-    for name, found in now.items():
-        old = {f["template"] for f in before.get(name, [])}
-        for f in found:
-            at_start = f["template"] in old
-            # A failure the change introduced is always reported; one the starting commit already had only
-            # when the task is about that behaviour (otherwise it is an unrelated old bug, a distraction).
+    for name, d in now.items():
+        b = before.get(name) or {}
+        compared = bool(b.get("replayed") and b.get("seeds") and b.get("done"))
+        old = {f["template"] for f in b.get("findings", [])}
+        for f in d.get("findings", []):
+            at_start = f["template"] in old or not compared
             if not at_start or relevant(f["template"], task_text):
-                out.append({"kind": "property", **f, "at_start": at_start})
+                out.append({"kind": "property", **f, "at_start": at_start, "compared": compared})
     return out
 
 

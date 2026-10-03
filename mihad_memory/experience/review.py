@@ -113,6 +113,20 @@ def edge_checklist(engine, ws, state_path=None):
     return out
 
 
+def tree_signature(ws):
+    """A fingerprint of the working tree's changes: tracked changes plus untracked files' contents."""
+    import hashlib
+    h = hashlib.sha1(git(ws, "diff", "HEAD", check=False).encode("utf-8", "replace"))
+    for f in sorted(git(ws, "ls-files", "--others", "--exclude-standard", check=False).splitlines()):
+        p = Path(ws) / f
+        h.update(f.encode("utf-8", "replace"))
+        try:
+            h.update(p.read_bytes())
+        except OSError:
+            pass
+    return h.hexdigest()
+
+
 def _self_check(state_path):
     """The agent's own check reported a mismatch and no edit followed it."""
     if not state_path or not Path(state_path).exists():
@@ -162,6 +176,8 @@ def recheck(engine, ws, tests_after_edit=None, state_path=None, props=False, fin
 
 def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, edges=False, checks=False,
            props=False):
+    import time
+    started = time.time()
     ws = Path(ws)
     if not git(ws, "diff", "HEAD", "--stat", check=False).strip():
         if props and state_path:  # a fix task that ends with no change at all
@@ -195,12 +211,23 @@ def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, 
         from . import probes
         task = Path(f"{state_path}.task.txt").read_text(encoding="utf-8") if state_path and \
             Path(f"{state_path}.task.txt").exists() else None
-        found = probes.run_all(ws, project.load(ws), props=props, task_text=task)
+        # The checks run the tests many times; while the files are unchanged their result cannot change,
+        # so a second review of the same tree (the agent calling the review tool again) reuses it.
+        sig = tree_signature(ws)
+        cpath = Path(f"{state_path}.checks-cache.json") if state_path else None
+        cached = json.loads(cpath.read_text(encoding="utf-8")) if cpath and cpath.exists() else {}
+        if cached.get("sig") == sig and cached.get("props") == bool(props):
+            found = cached["found"]
+        else:
+            found = probes.run_all(ws, project.load(ws), props=props, task_text=task)
+            if cpath:
+                cpath.write_text(json.dumps({"sig": sig, "props": bool(props), "found": found}), encoding="utf-8")
         if props:
             found += _self_check(state_path)
         issues += [probes.describe(f) for f in found]
     engine.fired("review", fired)
-    engine.log("review", {"round": 1, "issues": issues, "checks": found})
+    engine.log("review", {"round": 1, "issues": issues, "checks": found,
+                          "seconds": round(time.time() - started, 1)})
     if state_path:
         Path(f"{state_path}.review.json").write_text(json.dumps({"round": 1, "checks": found}), encoding="utf-8")
     text = ""

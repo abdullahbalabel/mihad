@@ -29,6 +29,7 @@ interface ProjectConfig {
 	edges?: boolean;
 	checks?: boolean;
 	properties?: boolean;
+	review_blocks?: number;
 	advisor?: boolean;
 	advisor_model?: string;
 }
@@ -64,6 +65,8 @@ export default function (pi: ExtensionAPI) {
 	const checks = envMode ? Boolean(process.env.MIHAD_EXPERIENCE_CHECKS) : cfg!.checks === true;
 	// Property checks and closed-loop review rounds (re-check after the agent's reply).
 	const props = envMode ? Boolean(process.env.MIHAD_EXPERIENCE_PROPS) : cfg!.properties === true;
+	// How many times a review may block the finish (then one measurement-only re-check).
+	const maxBlocks = Number(process.env.MIHAD_EXPERIENCE_MAX_BLOCKS || (envMode ? "" : cfg!.review_blocks) || 2);
 	const state =
 		process.env.MIHAD_EXPERIENCE_STATE ||
 		path.join(envMode ? os.tmpdir() : path.join(dir, "state"), `session-${Date.now()}-${process.pid}.json`);
@@ -165,8 +168,8 @@ export default function (pi: ExtensionAPI) {
 			// Round 1 reviews; round 2 re-checks after the agent's reply and may ask once more; round 3 only
 			// measures what the agent's last reply resolved.
 			if (reviewRound >= 3) return;
-			mode = reviewRound === 0 ? "full" : reviewRound === 1 ? "recheck" : "final";
-			reviewRound += 1;
+			mode = reviewRound === 0 ? "full" : reviewRound === 1 && maxBlocks >= 2 ? "recheck" : "final";
+			reviewRound = mode === "final" ? 3 : reviewRound + 1;
 		} else {
 			if (reviewed) return;
 			reviewed = true;

@@ -206,6 +206,9 @@ def handle(agent, data):
             rnd = meta.get("review_round", 0)
             if rnd >= 3:
                 return None
+            max_blocks = int(os.environ.get("MIHAD_EXPERIENCE_MAX_BLOCKS") or cfg.get("review_blocks") or 2)
+            if rnd >= 1 and max_blocks < 2:
+                rnd = 2  # one block only: the next stop is the measurement-only re-check
             s.put_meta(review_round=rnd + 1)
             if rnd == 0:
                 res = review_mod.review(engine, cwd, tests_ok, str(s.cache), str(s.state), edges, checks, props)
