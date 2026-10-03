@@ -28,7 +28,7 @@ The review blocks a stop at most once per request. It never blocks a stop that a
 ## Claude Code (terminal and desktop app)
 
 1. Install: `mihad-install <project> --agent claude`.
-2. Open the project in Claude Code. On first use it asks you to approve the project's MCP server from `.mcp.json`; approve `mihad_memory`.
+2. Open the project in Claude Code (terminal or desktop app). The memory server in `.mcp.json` is pre-approved for this project through `enabledMcpjsonServers` in `.claude/settings.json`, so no approval prompt is needed.
 3. The hooks are in the project's `.claude/settings.json`, which both the terminal and the desktop app read. Your own hooks in that file are kept.
 
 **Practice sessions (dreaming) with Claude Code** run `claude -p`. The standalone `claude` command needs to be signed in once: run `claude` in a terminal and use `/login`. The desktop app's sign-in is separate.
@@ -66,7 +66,8 @@ If an agent's command is not on `PATH`, the engine looks in the usual install fo
 | Check | Claude Code 2.1.286 | Codex CLI 0.159.2 |
 |---|---|---|
 | Install alongside existing settings, reinstall, uninstall | Yes (tests) | Yes (tests) |
-| Hooks fire in a real session | Yes: SessionStart, UserPromptSubmit and the brief | Yes: brief, live step recording, mandatory review that blocked a stop |
-| A full live session | Not yet: the standalone CLI on the test machine was not signed in | Yes |
+| Hooks fire in a real session | Yes: brief, step recording, and a mandatory review that sent Claude back to rerun the tests | Yes: brief, live step recording, mandatory review that blocked a stop |
+| A full live session | Yes, in the desktop app; the preference was captured and adopted | Yes |
+| Memory server (MCP) loaded by the agent | Pre-approval added after the first desktop test; to be confirmed | Through the trusted project's config |
 | Practice pair (with and without lessons) | Not yet | Yes: both sessions passed, hooks fired, usage parsed |
 | Project-level hooks after trusting the project | Yes (the hooks above came from the project file) | Not yet: tested with inline hooks; the project file needs the trust step above |

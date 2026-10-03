@@ -101,6 +101,20 @@ class Session:
         return m
 
 
+def tree_signature(cwd):
+    """A fingerprint of the project's uncommitted state: tracked changes and untracked files."""
+    import hashlib
+    import subprocess
+
+    def run(*args):
+        res = subprocess.run(["git", *args], cwd=cwd, capture_output=True)
+        return res.stdout if res.returncode == 0 else b""
+
+    untracked = b"\n".join(line for line in run("ls-files", "--others", "--exclude-standard").splitlines()
+                           if b"__pycache__" not in line and not line.endswith(b".pyc"))
+    return hashlib.sha1(run("diff", "HEAD") + b"\0" + untracked).hexdigest()
+
+
 def context(event_name, text):
     return {"hookSpecificOutput": {"hookEventName": event_name, "additionalContext": text[:9500]}}
 
@@ -148,7 +162,7 @@ def handle(agent, data):
             if not meta.get("started"):
                 live.record(engine, "start", cwd, str(s.steps), prompt)
                 live.ingest(engine)
-        s.put_meta(started=True, reviewed=False)
+        s.put_meta(started=True, reviewed=False, tree=tree_signature(cwd))
         model = os.environ.get("MIHAD_EXPERIENCE_MODEL") or s.get_meta().get("model")
         text = brief_mod.brief(engine, cwd, prompt, model)
         if not env_mode:
@@ -163,6 +177,19 @@ def handle(agent, data):
                                  "text": text[-2000:]}) + "\n")
         advice = failures.detect(engine, {"toolName": tool, "input": args, "isError": err, "text": text},
                                  str(s.state), cwd)
+        # An edit is a change to the project, whatever tool made it (agents also edit through shell
+        # scripts) and only inside the project (not, say, the agent's own memory files elsewhere).
+        sig = tree_signature(cwd)
+        meta = s.get_meta()
+        st = json.loads(s.state.read_text(encoding="utf-8")) if s.state.exists() else None
+        if st is not None:
+            changed = meta.get("tree") is not None and sig != meta.get("tree")
+            if changed and not failures.TEST_RUN.search(args.get("command", "")):
+                st["last_edit"] = st["step"]
+            elif not changed and tool in ("edit", "write") and st.get("last_edit") == st["step"]:
+                st["last_edit"] = meta.get("last_edit_step", 0)  # the tool wrote outside the project
+            meta = s.put_meta(tree=sig, last_edit_step=st["last_edit"])
+            s.state.write_text(json.dumps(st), encoding="utf-8")
         return context("PostToolUse", advice) if advice else None
 
     if event == "Stop":
@@ -190,7 +217,8 @@ def main(argv=None):
     agent = argv[0] if argv else "claude"
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-        data = json.loads(sys.stdin.read() or "{}")
+        # Bytes, decoded as UTF-8: the console code page would garble non-Latin text (Arabic prompts).
+        data = json.loads(sys.stdin.buffer.read().decode("utf-8", errors="replace") or "{}")
         out = handle(agent, data)
         if out:
             sys.stdout.write(json.dumps(out, ensure_ascii=False))

@@ -153,6 +153,40 @@ class SessionTests(unittest.TestCase):
         steps = (exp / "state").glob("claude-s1.steps.jsonl")
         self.assertEqual(len(next(steps).read_text(encoding="utf-8").splitlines()), 5)
 
+    def fire_raw(self, event, **fields):
+        data = {"session_id": "s2", "cwd": str(self.root), "hook_event_name": event, **fields}
+        res = subprocess.run([sys.executable, str(self.launcher), "claude"],
+                             input=json.dumps(data, ensure_ascii=False).encode("utf-8"),
+                             capture_output=True, timeout=120)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        out = res.stdout.decode("utf-8")
+        return json.loads(out) if out.strip() else None
+
+    def test_arabic_and_edits_made_by_shell_scripts(self):
+        self.fire_raw("UserPromptSubmit", prompt="أصلح الدالة. Always add a regression test.")
+        log = (self.root / ".mihad" / "user_messages.txt").read_text(encoding="utf-8")
+        self.assertIn("أصلح الدالة", log)  # UTF-8, not the console code page
+        # A write outside the project (the agent's own notes) is not an edit of the project.
+        self.fire_raw("PostToolUse", tool_name="Write", tool_input={"file_path": "C:/elsewhere/notes.md"},
+                      tool_response={"type": "text", "text": "ok"})
+        self.fire_raw("PostToolUse", tool_name="Bash", tool_input={"command": "python -m unittest discover -s tests"},
+                      tool_response={"stdout": "OK", "exit_code": 0})
+        self.assertIsNone(self.fire_raw("Stop", stop_hook_active=False))  # nothing changed in the project
+        # An edit made by a shell script, after the last test run, is seen.
+        self.fire_raw("UserPromptSubmit", prompt="Now handle empty text.")
+        (self.root / "src" / "shop" / "core.py").write_text(CORE + "\n# changed\n", encoding="utf-8")
+        self.fire_raw("PostToolUse", tool_name="Bash", tool_input={"command": "python fix.py"},
+                      tool_response={"stdout": "", "exit_code": 0})
+        stop = self.fire_raw("Stop", stop_hook_active=False)
+        self.assertIn("run the tests again", stop["reason"])
+
+    def test_paraphrased_preference_is_not_stored_twice(self):
+        self.fire_raw("UserPromptSubmit", prompt="Always add a regression test for every bug you fix.")
+        self.fire_raw("UserPromptSubmit", prompt="Always add a regression test for every bug you fix in this project.")
+        res = subprocess.run([sys.executable, "-m", "mihad_memory.cli", "--project", str(self.root), "list"],
+                             capture_output=True, text=True, cwd=str(ROOT), timeout=60)
+        self.assertEqual(sum(" preference " in line for line in res.stdout.splitlines()), 1, res.stdout)
+
     def test_not_an_installed_project_is_silent(self):
         other = make_project(Path(self.tmp.name) / "other")
         data = {"session_id": "s", "cwd": str(other), "hook_event_name": "UserPromptSubmit", "prompt": "hi"}

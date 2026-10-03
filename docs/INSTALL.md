@@ -38,7 +38,7 @@ mihad-install D:/path/to/project --agent codex         # Codex
 mihad-install D:/path/to/project --agent claude --agent codex
 ```
 
-Claude Code asks once to approve the project's MCP server. Codex runs project hooks only after you trust the project in Codex. See [Agents](AGENTS.md).
+For Claude Code the memory server is pre-approved for the project. Codex runs project hooks only after you trust the project in Codex. See [Agents](AGENTS.md).
 
 The installer detects the project's language, source and test folders, test runner and test command, and prints them. Check them; you can change anything in `.mihad/project.json` afterwards.
 

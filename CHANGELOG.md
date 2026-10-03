@@ -15,7 +15,14 @@
 - **Verified live with Codex:**
   - the brief, step recording and a mandatory review that blocked a stop;
   - a full practice pair.
-- **Claude Code:** the hooks fired in a real session; a full session awaits a signed-in standalone CLI.
+- **Verified live with Claude Code (desktop app):**
+  - the brief and preference capture;
+  - a mandatory review that sent Claude back to rerun the tests.
+- **Fixes from that session:**
+  - hook input is decoded as UTF-8, so Arabic prompts are no longer garbled;
+  - edits are detected as changes to the project, whatever tool made them (shell scripts included, writes outside the project excluded);
+  - a paraphrased preference is not stored twice;
+  - the memory server is pre-approved for Claude Code.
 
 ## 1.0.0 — 2026-10-03
 

@@ -109,7 +109,8 @@ class Memory:
                  if r["kind"] == "preference"}
         captured = []
         for line in standing_preference_lines(text):
-            if line in known:
+            # The same preference said again in slightly different words is not a new preference.
+            if line in known or any(k and similar(line, k) >= DUPLICATE_JACCARD for k in known):
                 continue
             rid = self.store.add_record("preference", line[:80], line, USER_ORIGIN_TAG, "provisional",
                                         self.policy, self.session_id, {"quote": line})

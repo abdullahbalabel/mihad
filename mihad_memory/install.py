@@ -167,6 +167,11 @@ def _install_claude(root, cfg, launcher, dry, log, created):
     _backup(root, settings_path, dry, log)
     settings = _merge_hooks(_read(settings_path, {}), lambda event: {
         "type": "command", "command": sys.executable, "args": [str(launcher), "claude"]})
+    # Pre-approve the memory server from .mcp.json (the user installed it on purpose); without this
+    # Claude Code may load project MCP servers only after an approval prompt that some clients skip.
+    approved = settings.setdefault("enabledMcpjsonServers", [])
+    if SERVER not in approved:
+        approved.append(SERVER)
     _write(settings_path, settings, dry, log)
 
 
@@ -272,7 +277,7 @@ def install(root, agents=("omp",), dry=False, log=print):
     if "codex" in agents:
         log("Codex runs project hooks only for trusted projects: trust this folder in Codex once.")
     if "claude" in agents:
-        log("Claude Code asks once to approve the project's MCP server from .mcp.json.")
+        log("Claude Code: the memory server in .mcp.json is pre-approved (enabledMcpjsonServers).")
     return cfg
 
 
@@ -294,7 +299,15 @@ def uninstall(root, agents=AGENTS, purge=False, dry=False, log=print):
             e for e in d.get("extensions", []) if Path(e).name != EXTENSION.name]))
     if "claude" in agents:
         edit_json(root / ".mcp.json", drop_server)
-        edit_json(root / ".claude" / "settings.json", _strip_hooks)
+        def strip_claude(doc):
+            doc = _strip_hooks(doc)
+            if SERVER in doc.get("enabledMcpjsonServers", []):
+                doc["enabledMcpjsonServers"].remove(SERVER)
+                if not doc["enabledMcpjsonServers"]:
+                    del doc["enabledMcpjsonServers"]
+            return doc
+
+        edit_json(root / ".claude" / "settings.json", strip_claude)
     if "codex" in agents:
         edit_json(root / ".codex" / "hooks.json", _strip_hooks)
         toml_path = root / ".codex" / "config.toml"
