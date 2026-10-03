@@ -86,7 +86,7 @@ OMP, Claude Code (terminal and desktop) and Codex. Ten programming languages. St
 | ✅ | *Operational* experience transferred to new tasks | Same success (11/14), **14.4% fewer tokens**, quality 3.93 vs 3.79 |
 | ❌ | Knowledge *about the code* did not transfer | Same success, **+16–17% cost** (memory and notes) |
 | ❌ | Generic advice in every session is noise | 10/14, more cost, lower quality: now **off by default** |
-| ✅ | Executable review checks raise quality | **35/42** vs 32/42, judge **3.98** vs 3.74, **0** format regressions vs 10, +2% cost |
+| ✅ | Executable review checks: facts about the change, not advice | **35/42** vs 32/42, **0** format regressions vs 10, +2% cost (3 repetitions) |
 
 <sub>Exploratory results, one main repository. The engine3 row has 3 repetitions per arm; the others one run per cell. Methods and limits are in the paper.</sub>
 

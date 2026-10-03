@@ -77,7 +77,7 @@ With findings, the agent gets one more turn; without, nothing is said.
   | Engine | 32/42 | 3.74 | 10 | $8.80 |
   | Engine with checks | **35/42** | **3.98** | **0** | $8.98 |
 
-  The agents fixed 13 of 14 format findings and 8 of 17 untested-line findings. Only one of the three extra successes is clearly due to a finding. The steady gain is quality: correctness, formatting, and twice as many sessions adding a test.
+  The agents fixed 13 of 14 format findings. Only one of the three extra successes is linked to a finding, and property tests show that solution is only partly correct. The judge's higher score follows the extra successes: among passing runs the arms differ by at most 0.11. The firm gain is formatting. Whether untested-line findings were resolved was not measured, because the review was not re-run after the agent's reply; closing that loop is the next step.
 
 ## 6. Learning from your corrections
 

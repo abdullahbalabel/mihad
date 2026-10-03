@@ -9,7 +9,7 @@
   - **single-pass iterators** (Python), reported only as a regression.
 - **Evidence (experiment engine3, 3 repetitions, 42 runs per arm, Haiku):**
   - success 35/42 vs 32/42;
-  - judge 3.98 vs 3.74;
+  - judge 3.98 vs 3.74, a rise that follows the extra successes (passing runs differ by at most 0.11);
   - format regressions 0 vs 10;
   - +2% cost.
 - **Upgrading:** projects installed with 1.1 keep `"checks": false` in `.mihad/project.json`; set it to `true`.
