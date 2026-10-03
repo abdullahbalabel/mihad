@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.0 — 2026-10-03
+
+- **Executable review checks, on by default** (`checks: true`). Before the agent finishes, its change is run, not just read:
+  - **mutation adequacy:** each added line is broken on a temporary copy, and the line is reported if the tests still pass;
+  - **format and lint** regressions relative to the starting commit;
+  - **checkable preferences**, such as a regression test that must fail on the old code;
+  - **single-pass iterators** (Python), reported only as a regression.
+- **Evidence (experiment engine3, 3 repetitions, 42 runs per arm, Haiku):**
+  - success 35/42 vs 32/42;
+  - judge 3.98 vs 3.74;
+  - format regressions 0 vs 10;
+  - +2% cost.
+- **Upgrading:** projects installed with 1.1 keep `"checks": false` in `.mihad/project.json`; set it to `true`.
+- **Paper v1.9:** adds the executable-review experiment.
+
 ## 1.1.0 — 2026-10-03
 
 - **Claude Code and Codex.** `mihad-install --agent claude|codex` wires the memory (MCP) and the experience engine through hooks:

@@ -5,7 +5,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: PolyForm Noncommercial" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-0f766e"></a>
   <img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-2dd4bf">
-  <img alt="Version 1.1.0" src="https://img.shields.io/badge/version-1.1.0-14b8a6">
+  <img alt="Version 1.2.0" src="https://img.shields.io/badge/version-1.2.0-14b8a6">
   <img alt="Zero dependencies" src="https://img.shields.io/badge/dependencies-none-5eead4">
   <img alt="Agents" src="https://img.shields.io/badge/agents-OMP%20%7C%20Claude%20Code%20%7C%20Codex-115e59">
   <img alt="Tests" src="https://img.shields.io/badge/tests-76%20passing-0d9488">
@@ -18,7 +18,7 @@
   <a href="#-quick-start">Quick start</a> •
   <a href="#-how-it-works">How it works</a> •
   <a href="#-documentation">Docs</a> •
-  <a href="paper/MIHAD_Research_Paper_EN_v1.8.md">Paper</a> •
+  <a href="paper/MIHAD_Research_Paper_EN_v1.9.md">Paper</a> •
   <a href="#-بالعربية">العربية</a>
 </p>
 
@@ -28,7 +28,7 @@
 
 Coding agents start every session like a new hire on day one. They forget yesterday's corrections and repeat the same mistakes. Saving everything they "learn" is not the answer either: an agent that remembers its own wrong conclusions repeats them with confidence.
 
-**MIHAD gives an agent a memory and a body of experience that grow with use, and it adopts nothing without independent evidence.** It is built on a research programme with pinned protocols, real repository history and a blind quality judge. See the [paper](paper/MIHAD_Research_Paper_EN_v1.8.md).
+**MIHAD gives an agent a memory and a body of experience that grow with use, and it adopts nothing without independent evidence.** It is built on a research programme with pinned protocols, real repository history and a blind quality judge. See the [paper](paper/MIHAD_Research_Paper_EN_v1.9.md).
 
 ## ✨ What it does
 
@@ -51,7 +51,7 @@ Say *"Always add a regression test"* once, in any message. It is captured verbat
 <td valign="top">
 
 ### 🧭 Brief, live warnings, review
-At the start of each request the agent gets a short brief. While it works, known pitfalls are flagged the moment they recur. **Before it finishes, its change is reviewed**, and findings send it back to work.
+At the start of each request the agent gets a short brief. While it works, known pitfalls are flagged the moment they recur. **Before it finishes, its change is reviewed and executed**: lines no test covers, lost formatting, broken preferences. Findings send it back to work.
 
 </td>
 <td valign="top">
@@ -86,8 +86,9 @@ OMP, Claude Code (terminal and desktop) and Codex. Ten programming languages. St
 | ✅ | *Operational* experience transferred to new tasks | Same success (11/14), **14.4% fewer tokens**, quality 3.93 vs 3.79 |
 | ❌ | Knowledge *about the code* did not transfer | Same success, **+16–17% cost** (memory and notes) |
 | ❌ | Generic advice in every session is noise | 10/14, more cost, lower quality: now **off by default** |
+| ✅ | Executable review checks raise quality | **35/42** vs 32/42, judge **3.98** vs 3.74, **0** format regressions vs 10, +2% cost |
 
-<sub>Exploratory results: one run per cell, one main repository. Methods and limits are in the paper.</sub>
+<sub>Exploratory results, one main repository. The engine3 row has 3 repetitions per arm; the others one run per cell. Methods and limits are in the paper.</sub>
 
 ## 🚀 Quick start
 
@@ -190,7 +191,7 @@ Every lesson has a gate before it is used:
 
 ## 📄 Research
 
-*Adopting Reasoning Outputs Only After Verification: The MIHAD Architecture, a Verified Memory and an Experience Engine for Coding Agents*, version 1.8 ([Markdown](paper/MIHAD_Research_Paper_EN_v1.8.md) · [Word](paper/MIHAD_Research_Paper_EN_v1.8.docx)).
+*Adopting Reasoning Outputs Only After Verification: The MIHAD Architecture, a Verified Memory and an Experience Engine for Coding Agents*, version 1.9 ([Markdown](paper/MIHAD_Research_Paper_EN_v1.9.md) · [Word](paper/MIHAD_Research_Paper_EN_v1.9.docx)).
 
 <details>
 <summary><b>Cite this work</b></summary>
@@ -202,7 +203,7 @@ Every lesson has a gate before it is used:
              a Verified Memory and an Experience Engine for Coding Agents},
   year    = {2026},
   month   = {10},
-  note    = {Version 1.8},
+  note    = {Version 1.9},
   url     = {https://github.com/abdullahbalabel/mihad}
 }
 ```
@@ -217,7 +218,7 @@ Every lesson has a gate before it is used:
 
 - 🛡️ **ذاكرة لا تعتمد إلا ما له دليل مستقل:** المهارة تُعتمد إن نجحت في اختبارات المشروع، والحقيقة إن اقتبست نص الكود كما كان قبل الجلسة، والتفضيل إن كان كلامك الحرفي.
 - 🗣️ **تفضيلاتك تُحفظ:** تقولها مرة في أي رسالة، فتُلتقط بنصها وتُتبع في كل جلسة لاحقة.
-- 🧭 **موجز في بداية كل طلب، وتنبيه حي، ومراجعة إجبارية قبل الإنهاء:** إن وجدت المراجعة مشكلة، يعود الوكيل للعمل.
+- 🧭 **موجز في بداية كل طلب، وتنبيه حي، ومراجعة إجبارية قبل الإنهاء:** المراجعة تشغّل التغيير فعلًا، فتكشف الأسطر التي لا يغطيها أي اختبار، وضياع التنسيق، ومخالفة تفضيلاتك. إن وجدت مشكلة، يعود الوكيل للعمل.
 - 🔁 **يتعلم من تصحيحاتك:** حين تعمل commit، تصبح نسختك هي النهائية، ويتعلم المحرك مما غيّرته بعد الوكيل.
 - 🌙 **الحلم:** بين الجلسات يتدرب على نسخ معدلة من إصلاحات سابقة، بالدروس وبدونها، ولا يبقي درسًا إلا إن أثبتت التجربة فائدته.
 - 🧩 **يعمل مع OMP وClaude Code وCodex، وبعشر لغات برمجة، ويُثبَّت على أي مشروع بأمر واحد.**

@@ -1,6 +1,6 @@
 # Capabilities
 
-Each part below says what it does, how it decides what to trust, and what the experiments showed about it. Numbers come from the research paper ([paper/](../paper/MIHAD_Research_Paper_EN_v1.8.md)); all are exploratory, with one run per cell.
+Each part below says what it does, how it decides what to trust, and what the experiments showed about it. Numbers come from the research paper ([paper/](../paper/MIHAD_Research_Paper_EN_v1.9.md)); all are exploratory, with one run per cell except the executable-checks experiment (three repetitions).
 
 ## 1. Verified memory (MCP server)
 
@@ -58,7 +58,26 @@ When the agent stops, the engine looks at its actual change. It checks for:
 - for Python, a new public function missing from `__all__` or from the `.pyi` stub, or a changed signature with an unchanged stub;
 - whether tests ran after the last edit.
 
+**Executable checks** (`checks`, on by default) run the agent's change instead of reading it. Each finding is something that actually happened:
+
+- **Mutation adequacy.** On a temporary copy of the project, each line the agent added is broken in turn: a condition is negated, a statement is removed, an operator is changed. If the tests still pass, that line is untested, and the finding names it: *if `return count + 1` at more.py:2441 became `pass`, all tests would still pass.* Tests that name the function are run; if none does, the full suite.
+- **Format and lint.** A file that matched the project's formatter at the starting commit and no longer does, or new lint findings in it.
+- **Preference compliance.** A preference that can be checked, such as "add a regression test for every bug you fix": a new test must exist and fail on the old code.
+- **Single-pass iterators** (Python). A function taking an `iterable` is called with a one-shot iterator; reported only if it worked at the starting commit and fails now.
+
+At most four findings are reported.
+
 With findings, the agent gets one more turn; without, nothing is said.
+
+- **Evidence (experiment engine3, 42 runs per arm, Haiku):**
+
+  | | Success | Judge (overall) | Format regressions | Cost |
+  |---|---|---|---|---|
+  | No memory | 32/42 | 3.71 | 7 | $10.41 |
+  | Engine | 32/42 | 3.74 | 10 | $8.80 |
+  | Engine with checks | **35/42** | **3.98** | **0** | $8.98 |
+
+  The agents fixed 13 of 14 format findings and 8 of 17 untested-line findings. Only one of the three extra successes is clearly due to a finding. The steady gain is quality: correctness, formatting, and twice as many sessions adding a test.
 
 ## 6. Learning from your corrections
 

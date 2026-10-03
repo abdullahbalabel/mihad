@@ -16,7 +16,8 @@ After `mihad-install`, use your agent (OMP, Claude Code or Codex) in the project
    - regressions caught by verifier scripts from past fixes;
    - files the user always changes together;
    - stub and `__all__` consistency (Python);
-   - whether tests ran after the last edit.
+   - whether tests ran after the last edit;
+   - executable checks on the change itself: lines no test covers (each added line is broken on a copy and the tests rerun), lost formatting or new lint findings, checkable preferences, and single-pass iterators (Python).
 
    If it finds something, the agent gets one more turn; otherwise it stays silent.
 4. **Your commit is the lesson.** Every session is recorded. When you commit afterwards, your commit is treated as the final version, and what you changed after the agent becomes experience. Commit as usual; there is nothing extra to do.
@@ -99,6 +100,7 @@ A cycle needs code with conditions or arithmetic to mutate. Code that only chain
 | `experience_dir` | `.mihad/experience` | The engine's store |
 | `memory_db` | `.mihad/memory.db` | The memory database |
 | `user_log` | `.mihad/user_messages.txt` | Your messages: the evidence for preferences |
+| `checks` | `true` | Executable checks at review: untested lines, formatting and lint, checkable preferences, single-pass iterators. Projects installed with 1.1 have `false` written in their config; set it to `true` |
 | `edges` | `false` | Add a generic edge-case checklist to the review. Off because it added cost without raising success |
 | `advisor` | `false` | Let a stuck session consult a stronger model once |
 | `advisor_model` | `anthropic/claude-sonnet-5` | The advisor's model |

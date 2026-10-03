@@ -1,4 +1,4 @@
-<!-- Generated from _work/manuscript_v1.8_en.md by _work/export_md_v1.8_en.py -->
+<!-- Generated from _work/manuscript_v1.9_en.md by _work/export_md_v1.9_en.py -->
 <!-- © 2026 Abdullah Mohammed Balabel. Non-commercial use only; see LICENSE. -->
 
 # Adopting Reasoning Outputs Only After Verification
@@ -7,7 +7,7 @@
 
 Abdullah Mohammed Balabel
 
-Research design and exploratory results — Version 1.8 — October 2026
+Research design and exploratory results — Version 1.9 — October 2026
 
 ## Abstract
 
@@ -15,7 +15,7 @@ Language-model agents can store and retrieve experience, but storing a conclusio
 
 Three results hold across the studies. First, admission by evidence type protects the memory: in the evidence-independence test the gate exceeded the strongest of four required baselines by 12.8 points (92.4% vs 79.6%), although it matched origin-level aggregation, a known treatment of source dependence; and on the coding agent, deliberately planted wrong items were never followed. Second, the clearest positive effect concerns knowledge an agent cannot recover from the code: once standing user preferences were captured verbatim from the user's own words and labelled as such, verified memory carried them into every later task (15/15 vs 0/15). Third, knowledge about the code did not transfer to different later tasks: in a time-split test with 14 newer tasks, memory and automatically written project notes left success unchanged (11/14 and 10/14 vs 11/14) and raised cost by 16–17%.
 
-An experience engine that turns sessions into operational experience did better. It mines tool pitfalls, verifier scripts, the user's corrections and compiled skills, and gives a brief and a review sized by competence. It promotes a lesson only after an A/B test on practice tasks made by mutating past fixes. With this engine a weaker model kept the same success as without memory (11/14) at 14.4% lower cost, and the blind judge's quality score did not fall (3.93 vs 3.79). A second version that added a generic edge-case checklist and a stronger-model advisor did not raise success (10/14), cost more, and scored lower; generic guidance in every session behaves as noise. All results are exploratory, with one run per cell on one main repository. The tool has been generalized into a standalone package for ten programming languages. No claim of machine consciousness is made.
+An experience engine that turns sessions into operational experience did better. It mines tool pitfalls, verifier scripts, the user's corrections and compiled skills, and gives a brief and a review sized by competence. It promotes a lesson only after an A/B test on practice tasks made by mutating past fixes. With this engine a weaker model kept the same success as without memory (11/14) at 14.4% lower cost, and the blind judge's quality score did not fall (3.93 vs 3.79). A second version that added a generic edge-case checklist and a stronger-model advisor did not raise success (10/14), cost more, and scored lower; generic guidance in every session behaves as noise. A third version replaced advice with executable review checks: before finishing, each line the agent added is mutated to see whether the tests notice, and formatting, lint and preference compliance are checked against the starting commit. Over three repetitions (42 runs per version) it raised success to 35/42 against 32/42 for both other versions and the judge's score to 3.98 against 3.74, with no formatting regressions against ten, for 2% more cost. Only one of the three extra successes is clearly caused by a finding, so the firm effect is on quality. All results are exploratory and come from one main repository; only the last experiment was repeated. The tool has been generalized into a standalone package for ten programming languages. No claim of machine consciousness is made.
 
 Keywords: agent memory, continual learning, knowledge verification, adoption gate, experience engine, coding agents, developmental artificial intelligence.
 
@@ -47,7 +47,7 @@ The paper makes four contributions, ordered by the strength of the evidence behi
 
 2. Capture of user preferences from the user's own verbatim words, with a scope rule for one-off instructions and a trust label that makes the agent follow them; this produced the clearest effect we observed.
 
-3. An experience engine that learns operational experience (tool pitfalls, the user's corrections, verified skills, verifier scripts) and promotes a lesson only after a causal A/B test on practice tasks, instead of trusting the model's judgement of its own lessons.
+3. An experience engine that learns operational experience (tool pitfalls, the user's corrections, verified skills, verifier scripts) and promotes a lesson only after a causal A/B test on practice tasks, instead of trusting the model's judgement of its own lessons; and an executable review that reports observed facts about the agent's change, such as lines no test covers, instead of advice.
 
 4. A comparison protocol that separates the effect of verification from mere storage, measures acquisition, retention, transfer to different tasks, cost and quality, and pins each protocol before its run.
 
@@ -600,6 +600,66 @@ Engine v1 met the rule through its second condition. It solved and failed the sa
 
 The three failures were shared by every version: a task whose description is nearly empty, so the intended equality semantics cannot be inferred; a floating-point consistency problem; and a single-use iterator edge case. They are failures of intent and edge cases, not of tools. Engine v2 targeted them with two additions: an edge-case checklist mined from the verifier scripts, and one consultation of a stronger model when the agent is stuck. It did not raise success (10/14). The checklist showed nearly the same three or four generic checks in every session. The advisor was consulted once, on the floating-point task: it located the faulty lines precisely, but the weaker model still failed. The one new failure looks like the weaker model's variability on a hard floating-point task, but one run cannot prove this. Cost rose by 25% over v1, and the judge's score fell to 3.57. Generic guidance in every session behaves as noise; what worked was specific operational experience.
 
+### Executable Review: Facts about the Change Instead of Advice
+
+The lesson of v2 was that the agent acts on what actually happened, not on general advice. Engine v3 therefore adds executable checks to the review. Before the agent may finish, its change is run, and only observed facts about it are reported:
+
+- **Mutation adequacy.** On a temporary copy of the workspace, each line the agent added is broken in turn: a condition is negated, a statement is removed, or an operator is changed. If the tests still pass, the line is untested, and the finding names it ("if `return count + 1` at more.py:2441 became `pass`, all tests would still pass").
+
+- **Format and lint.** A file that matched the project's formatter at the starting commit and no longer does, or new lint findings.
+
+- **Preference compliance.** A checkable standing preference, such as a regression test that must fail on the old code.
+
+- **Single-use iterators.** A function taking an iterable is called with a one-shot iterator; this is reported only if the call worked at the starting commit.
+
+At most four findings are reported, and the review blocks the finish once.
+
+Before the run, the checks were replayed offline on the final state of 42 earlier sessions. They produced findings in 9 of 10 failed sessions and 13 of 32 successful ones. Three kinds of false positives were removed before the protocol was pinned:
+
+- the iterator probe on functions that need a known length by nature;
+
+- deleting a bare `return`, an equivalent mutant;
+
+- "no test" for a private helper tested through public functions.
+
+The experiment replicated the design three times: 14 tasks × 3 repetitions = 42 runs per version, with Haiku and the same frozen v1 engine. Repetitions 2 and 3 ran in parallel, as recorded in an amendment written before any of their results were seen.
+
+**Table 21. Executable review checks (Haiku, 14 test tasks × 3 repetitions)**
+
+| Version | Success | Per repetition | Tokens | Blind judge (overall) | Format regressions |
+|---|---|---|---|---|---|
+| No memory | 32/42 | 11, 11, 10 | 47.1M | 3.71 | 7 |
+| Engine v1 | 32/42 | 11, 11, 10 | 41.0M | 3.74 | 10 |
+| Engine v1 + executable checks | 35/42 | 12, 12, 11 | 41.9M | 3.98 | 0 |
+
+The version with checks met the pinned success rule: at least three successes above both the no-memory version and engine v1, with a judge score not lower than v1's by more than 0.2. It also met the quality rule:
+
+- no formatting regression in 42 runs;
+
+- a judge score 0.24 higher, mostly from correctness (4.26 against 3.95);
+
+- 2% more cost than v1, while staying 11% cheaper than no memory.
+
+Ten of its sessions added a test, against six for v1 and seven without memory.
+
+The success gain is at the edge of the rule and must be read narrowly. Of the three extra successes:
+
+- **One is clearly caused by a finding.** On the floating-point task, which no version had solved in any earlier experiment, mutation findings showed that two return statements were untested. The agent then corrected `index()`.
+
+- **The second most likely is not.** It came on a task where the review reported only formatting.
+
+- **The third is ordinary variability.** It came on a task the other versions solved in two of three repetitions.
+
+The steady effect is on quality, and its mechanism is visible in the logs. Findings appeared in 21 of 41 reviewed sessions, and the agents acted on them unevenly:
+
+- they fixed 13 of 14 formatting findings;
+
+- they fixed only 8 of 17 untested-line findings.
+
+Turning an untested-line finding into a test is the step the weaker model most often skips. The quality metric also flagged three "weakened tests"; on inspection, each replaced `assertRaises` with the stricter `assertRaisesRegex`, as in the reference fix. The task with a nearly empty description failed in all nine of its runs.
+
+The result refines the lesson of v2. The useful signal is a specific fact observed by running the change, not a reminder of what might go wrong.
+
 ### Integrity of the Experiments
 
 While building the engine an audit found that one session of the notes arm had worked inside the no-memory arm's workspace and installed that workspace globally with pip. The arm before it had failed the same task, so there was no correct solution to copy, but the row was contaminated by protocol. It was removed and rerun in isolation, and failed, which lowered the notes result from 11/14 to 10/14. The global install was removed. Workspaces now live in random temporary folders outside the run directory and are deleted after grading, pip refuses global installs, and every result row records isolation flags; an audit of all earlier runs found no other access outside the workspace. Every fault, including the author's own mistakes during implementation, is logged with its cause and treatment.
@@ -612,9 +672,11 @@ Equal numbers of review-engine operations do not mean equal processor time, and 
 
 The experiments ended in a tool that applies what proved useful and leaves out what did not. The MIHAD Developmental Memory is a standalone package installed into any project with one command. It writes a project configuration with detected source and test folders and the test command, registers the memory server and the experience extension in the project's OMP configuration, keeps existing entries, backs up the originals, and adds nothing that git tracks.
 
-In ordinary sessions the agent receives a brief at the start of each request with the verified memory items, live warnings during the work, and a review before it finishes. Standing preferences are captured from the user's words. Each session is recorded with a snapshot of the working tree at its start and end; once the user commits, the commit is treated as the final version and what the user changed after the agent becomes a correction to learn from. A dream cycle, run by hand or every N sessions in the background, learns from new sessions, writes verifier scripts, practises on mutated past fixes with and without lessons, and keeps only the lessons that win. The defaults follow the experiments: verified memory on, operational lessons on, the generic edge-case checklist and the advisor off, automatic dreaming off.
+In ordinary sessions the agent receives a brief at the start of each request with the verified memory items, live warnings during the work, and a review before it finishes. Standing preferences are captured from the user's words. Each session is recorded with a snapshot of the working tree at its start and end; once the user commits, the commit is treated as the final version and what the user changed after the agent becomes a correction to learn from. A dream cycle, run by hand or every N sessions in the background, learns from new sessions, writes verifier scripts, practises on mutated past fixes with and without lessons, and keeps only the lessons that win. The defaults follow the experiments: verified memory on, operational lessons on, executable review checks on, the generic edge-case checklist and the advisor off, automatic dreaming off.
 
-**Table 21. Language support in the tool**
+The tool works with three coding agents. With OMP it runs as an extension. With Claude Code and Codex it runs through the agents' hooks, through one bridge: the brief when a request is submitted, live warnings after each tool call, the review when the agent tries to stop (blocking once per request), and session counting at the end of a session.
+
+**Table 22. Language support in the tool**
 
 | Language | Detection and function lookup | Test runners | Verified in this work |
 |---|---|---|---|
@@ -633,7 +695,7 @@ For languages other than Python, verifier scripts are test files written in the 
 
 Persistent memory can multiply the effect of an error if it is reused or built upon, which is one motive for the adoption gate itself. The design therefore separates source data, the agent's beliefs and the operating policy, checks permissions before retrieval, and records the source and version of every skill.
 
-**Table 22. Risks of continual learning and the proposed tests**
+**Table 23. Risks of continual learning and the proposed tests**
 
 | Risk | Control | What is tested |
 |---|---|---|
@@ -652,7 +714,7 @@ Passing these tests is evidence limited to what they covered and does not guaran
 
 A different structure may achieve the same behaviour, so MIHAD's success would not show that the brain works with its proposed units. Simulation reduces the body and the social environment, and dividing records into memory types does not establish matching biological stores.
 
-The gate may slow learning more than it protects: high thresholds reject correct knowledge, checkers can err or be gamed, and many open language claims have no independent checker. Storage without verification may suffice in an environment without misleading input, and a simple memory may serve the purpose. The coding-agent results add three limits. They come from one main repository with one run per cell, so a difference of one task or of 10–15% in cost may be noise. The blind judge is a language model not yet calibrated against human ratings. And the generalized tool has been tested live only on small sample projects.
+The gate may slow learning more than it protects: high thresholds reject correct knowledge, checkers can err or be gamed, and many open language claims have no independent checker. Storage without verification may suffice in an environment without misleading input, and a simple memory may serve the purpose. The coding-agent results add three limits. They come from one main repository, and all but the executable-review experiment have one run per cell, so a difference of one task or of 10–15% in cost may be noise; even with three repetitions, a gain of three successes in 42 has one clearly causal case. The blind judge is a language model not yet calibrated against human ratings. And the generalized tool has been tested live only on small sample projects.
 
 Implementation errors are separated from weak hypotheses. If retrieval breaks or test data leak, the result cannot judge the mechanism. If the implementation is correct, the comparison is sound and the pre-specified benefit is ruled out, the component is simplified or dropped within the scope tested. This is how DARA, the generic edge-case checklist and knowledge transfer through notes are treated here.
 
@@ -666,9 +728,9 @@ The reproduction package includes the environment description and random seeds, 
 
 The value of the adoption gate depends on the kind of knowledge. For checkable code knowledge, a strong agent checks for itself, so memory adds no success and raises cost, and knowledge about the code did not transfer to different later tasks, whether kept as verified memory or as project notes. For knowledge the agent cannot discover, such as user preferences, the gate was the condition for an effect: a trustworthy source in the user's verbatim words, a trust label that makes the agent follow the item, and a scope rule that keeps a one-off instruction from becoming a standing one. In the independence test the benefit came from tracking origins, not from the form of the gate.
 
-What transferred between different tasks was operational experience about the environment and its tools, learned from the agent's own sessions and promoted only when an A/B test on practice tasks showed that it saved effort without losing success. With it a weaker model kept its success at lower cost and unchanged quality. Generic advice added in every session did not help and lowered quality. None of the variants raised the weaker model's ability to solve the tasks it already failed, which concern unstated intent and edge cases.
+What transferred between different tasks was operational experience about the environment and its tools, learned from the agent's own sessions and promoted only when an A/B test on practice tasks showed that it saved effort without losing success. With it a weaker model kept its success at lower cost and unchanged quality. Generic advice added in every session did not help and lowered quality. Specific facts did: an executable review that runs the agent's change and reports what it observed raised quality across three repetitions. It also gave the first solution of a floating-point task that every earlier variant had failed. The task whose intent is unstated was still never solved.
 
-The next steps are to replicate the engine experiment and run it on a second repository, calibrate the judge with human ratings, choose edge cases per function from that function's own evidence, and test the tool on a real project, where the question is whether the engine learns from the user's own corrections something that saves the user work. The conclusions remain limited to the tasks and models tested, and this version does not establish the broader research goal.
+The next steps are to run the engine on a second repository and calibrate the judge with human ratings. They also include turning untested-line findings into proposed tests, since the weaker model acted on only half of them. Finally, the tool should be tested on a real project, where the question is whether the engine learns from the user's own corrections something that saves the user work. The conclusions remain limited to the tasks and models tested, and this version does not establish the broader research goal.
 
 ## References
 
