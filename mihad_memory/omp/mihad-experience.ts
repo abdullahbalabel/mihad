@@ -27,6 +27,7 @@ interface ProjectConfig {
 	python?: string;
 	mihad_root?: string;
 	edges?: boolean;
+	checks?: boolean;
 	advisor?: boolean;
 	advisor_model?: string;
 }
@@ -58,7 +59,8 @@ export default function (pi: ExtensionAPI) {
 		: path.resolve(cfg!.root, cfg!.experience_dir || ".mihad/experience");
 	const root = process.env.MIHAD_EXPERIENCE_ROOT || cfg?.mihad_root || process.cwd();
 	const py = process.env.MIHAD_EXPERIENCE_PY || cfg?.python || "python";
-	const edges = envMode ? Boolean(process.env.MIHAD_EXPERIENCE_EDGES) : cfg!.edges !== false;
+	const edges = envMode ? Boolean(process.env.MIHAD_EXPERIENCE_EDGES) : cfg!.edges === true;
+	const checks = envMode ? Boolean(process.env.MIHAD_EXPERIENCE_CHECKS) : cfg!.checks === true;
 	const state =
 		process.env.MIHAD_EXPERIENCE_STATE ||
 		path.join(envMode ? os.tmpdir() : path.join(dir, "state"), `session-${Date.now()}-${process.pid}.json`);
@@ -100,6 +102,7 @@ export default function (pi: ExtensionAPI) {
 	async function runReview(cwd: string): Promise<string> {
 		const args = ["review", "--cwd", cwd, "--state", state, "--cache", cache];
 		if (edges) args.push("--edges");
+		if (checks) args.push("--checks");
 		return engine(args, 600_000);
 	}
 

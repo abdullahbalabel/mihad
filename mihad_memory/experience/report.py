@@ -17,7 +17,11 @@ def _memory_section(engine):
     if not db.exists():
         return []
     from ..store import Store
-    recs = Store(str(db)).records()
+    store = Store(str(db))
+    try:
+        recs = store.records()
+    finally:
+        store.close()
     out = [f"\n## Project memory: {len(recs)} items\n\nOnly adopted items reach the agent as trusted.\n"]
     for status in ("adopted", "provisional", "suspended", "rejected", "superseded", "deleted"):
         rs = [r for r in recs if r["status"] == status]

@@ -202,7 +202,8 @@ def handle(agent, data):
             return None
         s.put_meta(reviewed=True)
         tests_ok = failures.tests_after_last_edit(str(s.state)) if s.state.exists() else None
-        res = review_mod.review(engine, cwd, tests_ok, str(s.cache), str(s.state), edges)
+        checks = bool(os.environ.get("MIHAD_EXPERIENCE_CHECKS")) if env_mode else bool(cfg.get("checks"))
+        res = review_mod.review(engine, cwd, tests_ok, str(s.cache), str(s.state), edges, checks)
         return {"decision": "block", "reason": res["text"]} if res["text"] else None
 
     if event == "SessionEnd":

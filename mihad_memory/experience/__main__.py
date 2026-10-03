@@ -65,6 +65,7 @@ def main(argv=None):
     p.add_argument("--cwd")
     p = sub.add_parser("review"); p.add_argument("--cwd", required=True); p.add_argument("--state"); p.add_argument("--cache")
     p.add_argument("--edges", action="store_true", help="add the edge-case checklist for changed functions")
+    p.add_argument("--checks", action="store_true", help="run the executable checks on the change (probes.py)")
     p = sub.add_parser("skill"); p.add_argument("action", choices=["list", "run"]); p.add_argument("name", nargs="?")
     p.add_argument("--cwd", default="."); p.add_argument("--arg", action="append", default=[])
     sub.add_parser("status")
@@ -113,7 +114,7 @@ def main(argv=None):
         print(failures.detect(eng, event, a.state, a.cwd), end="")
     elif a.cmd == "review":
         tests_ok = failures.tests_after_last_edit(a.state) if a.state else None
-        print(review_mod.review(eng, a.cwd, tests_ok, a.cache, a.state, a.edges)["text"], end="")
+        print(review_mod.review(eng, a.cwd, tests_ok, a.cache, a.state, a.edges, a.checks)["text"], end="")
     elif a.cmd == "skill":
         if a.action == "list":
             print(json.dumps(eng.get("skills", {}), indent=2))

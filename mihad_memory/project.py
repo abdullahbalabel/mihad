@@ -107,6 +107,8 @@ def _defaults(root):
             # Off by default: in experiment engine2 a generic edge-case checklist in every session added
             # cost and lowered quality without raising success. Enable per project to try it.
             "edges": False, "advisor": False, "advisor_model": "anthropic/claude-sonnet-5",
+            # Executable review checks (probes.py): off until experiment engine3 measures them.
+            "checks": False,
             "dream": {"agent": "omp", "auto_after_sessions": 0, "tasks_per_cycle": 4,
                       "model": "anthropic/claude-haiku-4-5",
                       "max_time": "15m", "visible": True}}

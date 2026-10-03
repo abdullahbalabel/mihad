@@ -113,7 +113,7 @@ def edge_checklist(engine, ws, state_path=None):
     return out
 
 
-def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, edges=False):
+def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, edges=False, checks=False):
     ws = Path(ws)
     if not git(ws, "diff", "HEAD", "--stat", check=False).strip():
         return {"issues": [], "text": ""}
@@ -135,8 +135,14 @@ def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, 
             issues.append("Run this edge-case check on the function you changed and fix it if it fails: "
                           + l["text"])
             fired.append(l["id"])
+    found = []
+    if checks:  # executable checks: findings observed on this change, not advice (probes.py)
+        from .. import project
+        from . import probes
+        found = probes.run_all(ws, project.load(ws))
+        issues += [probes.describe(f) for f in found]
     engine.fired("review", fired)
-    engine.log("review", {"issues": issues})
+    engine.log("review", {"issues": issues, "checks": found})
     text = ""
     if issues:
         text = ("[experience review] Before you finish, check these points from past work on this project:\n"
