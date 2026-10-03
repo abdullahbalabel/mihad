@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mihad"
+version = "1.0.0"
+description = "MIHAD Developmental Memory: verified memory and an experience engine for coding agents"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { file = "LICENSE" }
+authors = [{ name = "Abdullah Mohammed Balabel" }]
+keywords = ["agent memory", "coding agents", "MCP", "experience engine", "verification", "OMP"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development",
+    "License :: Other/Proprietary License",
+]
+dependencies = []
+
+[project.scripts]
+mihad-install = "mihad_memory.install:main"
+mihad = "mihad_memory.experience.__main__:main"
+mihad-memory = "mihad_memory.cli:main"
+mihad-mcp = "mihad_memory.mcp_server:main"
+
+[project.urls]
+Paper = "https://github.com/abdullahbalabel/mihad/blob/main/paper/MIHAD_Research_Paper_EN_v1.8.md"
+
+[tool.setuptools.packages.find]
+include = ["mihad_memory*"]
+
+[tool.setuptools.package-data]
+mihad_memory = ["omp/*.ts"]

@@ -1,0 +1,145 @@
+"""Idea 2: an experience reviewer at the decision point (before the agent finishes).
+
+It looks at the agent's actual change and checks it against experience, not against general
+advice: adopted checkers from past fixes (regressions), the user's co-change rules, stub and
+__all__ consistency that past fixes kept, and whether the tests were run after the last edit.
+It reports only concrete findings; with no findings it says nothing.
+"""
+import ast
+import json
+from pathlib import Path
+
+from .. import langs
+from .checkers import regressions
+from .edges import applicable
+from .common import git, is_lib, parse_diff, symbols_in_ranges, top_level_defs
+
+
+def _signature(source, name):
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
+            return ast.dump(node.args, include_attributes=False)
+        if isinstance(node, ast.ClassDef) and node.name == name:
+            for sub in node.body:
+                if isinstance(sub, ast.FunctionDef) and sub.name == "__init__":
+                    return ast.dump(sub.args, include_attributes=False)
+            return ""
+    return None
+
+
+def _all_names(source):
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and any(getattr(t, "id", None) == "__all__" for t in node.targets):
+            try:
+                return set(ast.literal_eval(node.value))
+            except ValueError:
+                return None
+    return None
+
+
+def consistency_issues(ws):
+    ws = Path(ws)
+    files = parse_diff(git(ws, "diff", "HEAD", check=False))
+    issues = []
+    for path, v in files.items():
+        if not (is_lib(path, ws) and path.endswith(".py")) or not (ws / path).exists():
+            continue
+        now = (ws / path).read_text(encoding="utf-8", errors="replace")
+        before = git(ws, "show", f"HEAD:{path}", check=False)
+        stub_path = path + "i"
+        stub_touched = stub_path in files
+        stub = (ws / stub_path).read_text(encoding="utf-8", errors="replace") if (ws / stub_path).exists() else None
+        before_defs = top_level_defs(before)
+        names_all = _all_names(now)
+        for name in sorted(symbols_in_ranges(now, v["new_ranges"])):
+            if name.startswith("_"):
+                continue
+            is_new = name not in before_defs
+            if is_new and names_all is not None and name not in names_all:
+                issues.append(f"{name} is new in {path} but not listed in its __all__.")
+            if stub is None or stub_touched:
+                continue
+            if is_new:
+                issues.append(f"{name} is new in {path}; {stub_path} has no stub for it (past fixes added stubs).")
+            elif _signature(before, name) != _signature(now, name) and (f"def {name}" in stub or
+                                                                         f"class {name}" in stub):
+                issues.append(f"The signature of {name} changed in {path} but {stub_path} was not updated.")
+    return issues
+
+
+def co_change_issues(engine, ws):
+    touched = set(parse_diff(git(ws, "diff", "HEAD", check=False)))
+    out, fired = [], []
+    for l in engine.active_lessons():
+        if l["kind"] == "co_change" and set(l["trigger"]["files"]) & touched and l["partner"] not in touched:
+            out.append(l["text"] + " Check whether this change needs it too.")
+            fired.append(l["id"])
+    return out, fired
+
+
+def edge_checklist(engine, ws, state_path=None):
+    """Edge-case lessons that apply to the changed functions and were not yet shown in this session."""
+    ws = Path(ws)
+    files = parse_diff(git(ws, "diff", "HEAD", check=False))
+    snippets = []
+    for path, v in files.items():
+        if is_lib(path, ws) and (ws / path).exists():
+            src = (ws / path).read_text(encoding="utf-8", errors="replace")
+            lang = langs.language_of(path)
+            defs = top_level_defs(src, lang)
+            for name in symbols_in_ranges(src, v["new_ranges"], lang):
+                if name not in defs:
+                    continue
+                a, b = defs[name]
+                snippets.append("\n".join(src.splitlines()[a - 1:b])[:1500])
+    if not snippets:
+        return []
+    state = {}
+    if state_path and Path(state_path).exists():
+        state = json.loads(Path(state_path).read_text(encoding="utf-8"))
+    shown = set(state.get("edges_shown", []))
+    out = [l for l in applicable(engine, snippets) if l["id"] not in shown]
+    if state_path and out:
+        state["edges_shown"] = sorted(shown | {l["id"] for l in out})
+        Path(state_path).write_text(json.dumps(state), encoding="utf-8")
+    return out
+
+
+def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, edges=False):
+    ws = Path(ws)
+    if not git(ws, "diff", "HEAD", "--stat", check=False).strip():
+        return {"issues": [], "text": ""}
+    cache = {}
+    if cache_path and Path(cache_path).exists():
+        cache = json.loads(Path(cache_path).read_text(encoding="utf-8"))
+    regs, cache = regressions(engine, ws, cache)
+    if cache_path:
+        Path(cache_path).write_text(json.dumps(cache), encoding="utf-8")
+    issues = [f"A check from a past fix now fails (task {r['task_id']}, {', '.join(r['families'])}): "
+              f"{r['output'].strip().splitlines()[-1] if r['output'].strip() else 'failed'}" for r in regs]
+    issues += consistency_issues(ws)
+    co, fired = co_change_issues(engine, ws)
+    issues += co
+    if tests_after_edit is False:
+        issues.append("You edited files after the last test run: run the tests again.")
+    if edges:
+        for l in edge_checklist(engine, ws, state_path):
+            issues.append("Run this edge-case check on the function you changed and fix it if it fails: "
+                          + l["text"])
+            fired.append(l["id"])
+    engine.fired("review", fired)
+    engine.log("review", {"issues": issues})
+    text = ""
+    if issues:
+        text = ("[experience review] Before you finish, check these points from past work on this project:\n"
+                + "\n".join(f"- {i}" for i in issues)
+                + "\nFix what applies; if a point does not apply, say why in one line. Then finish.")
+    return {"issues": issues, "text": text}
