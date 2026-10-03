@@ -23,6 +23,10 @@
   - edits are detected as changes to the project, whatever tool made them (shell scripts included, writes outside the project excluded);
   - a paraphrased preference is not stored twice;
   - the memory server is pre-approved for Claude Code.
+- **Verified live with Claude Code (CLI):**
+  - the memory server connected with its four tools;
+  - a full practice pair with Claude Code as the practice agent.
+- **Agent discovery** finds Claude Code inside the desktop app's package folder on Windows.
 
 ## 1.0.0 — 2026-10-03
 

@@ -84,9 +84,15 @@ def find_agent(name, cfg=None):
     if found:
         return found
     home = Path.home()
+    local = Path(os.environ.get("LOCALAPPDATA", home))
+    # The Claude desktop app is a packaged app: what it writes under AppData\Roaming is redirected to
+    # its package folder, so processes outside the app (a background dream cycle) only see it there.
+    packaged = [p / "LocalCache" / "Roaming" / "Claude" / "claude-code"
+                for p in (local / "Packages").glob("Claude_*")] if (local / "Packages").is_dir() else []
     patterns = {
-        "claude": [Path(os.environ.get("APPDATA", home)) / "Claude" / "claude-code", home / ".local" / "bin"],
-        "codex": [Path(os.environ.get("LOCALAPPDATA", home)) / "OpenAI" / "Codex" / "bin"],
+        "claude": [Path(os.environ.get("APPDATA", home)) / "Claude" / "claude-code", *packaged,
+                   home / ".local" / "bin"],
+        "codex": [local / "OpenAI" / "Codex" / "bin"],
     }.get(name, [])
     hits = [x for base in patterns if base.is_dir() for x in base.rglob(f"{name}.exe")]
     return str(max(hits, key=lambda x: x.stat().st_mtime)) if hits else name

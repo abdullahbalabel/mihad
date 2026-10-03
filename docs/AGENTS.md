@@ -66,8 +66,12 @@ If an agent's command is not on `PATH`, the engine looks in the usual install fo
 | Check | Claude Code 2.1.286 | Codex CLI 0.159.2 |
 |---|---|---|
 | Install alongside existing settings, reinstall, uninstall | Yes (tests) | Yes (tests) |
-| Hooks fire in a real session | Yes: brief, step recording, and a mandatory review that sent Claude back to rerun the tests | Yes: brief, live step recording, mandatory review that blocked a stop |
-| A full live session | Yes, in the desktop app; the preference was captured and adopted | Yes |
-| Memory server (MCP) loaded by the agent | Pre-approval added after the first desktop test; to be confirmed | Through the trusted project's config |
-| Practice pair (with and without lessons) | Not yet | Yes: both sessions passed, hooks fired, usage parsed |
-| Project-level hooks after trusting the project | Yes (the hooks above came from the project file) | Not yet: tested with inline hooks; the project file needs the trust step above |
+| Brief at the start of each request | Yes (desktop app and CLI) | Yes |
+| Preference capture and adoption | Yes (desktop app) | Through the same bridge |
+| Live step recording and warnings | Yes | Yes |
+| Mandatory review that sends the agent back to work | Yes: Claude went back and reran the tests | Yes: a stop was blocked |
+| Memory server (MCP) loaded with its four tools | Yes (CLI, `connected`, source `project`) | Through the trusted project's config; not yet tested |
+| Practice pair (with and without lessons) | Yes: both passed, hooks fired, usage parsed | Yes: both passed, hooks fired, usage parsed |
+| Project-level hooks file | Yes | Not yet: tested with inline hooks; the project file needs the trust step above |
+
+**Windows note for Claude Code.** The desktop app is a packaged app. Files it writes under `AppData\Roaming` are redirected to `AppData\Local\Packages\Claude_*\LocalCache\Roaming`, so a terminal outside the app does not find `claude.exe` at the Roaming path. The engine looks in both places, and in `~/.local/bin`, where the CLI installs itself after signing in.
