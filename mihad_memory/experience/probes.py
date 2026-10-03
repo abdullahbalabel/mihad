@@ -108,7 +108,8 @@ def test_ids(ws, cfg, symbols, tests):
 def run_tests(ws, ids, env=None):
     from .skills import _test_cmd, resolve
     import shlex
-    cmd = _test_cmd(ws, ids) if ids else resolve(shlex.split(project.load(ws)["test_command"]))
+    cfg = project.load(ws)
+    cmd = _test_cmd(ws, ids) if ids else resolve(shlex.split(cfg["test_command"]), cfg)
     return run(cmd, ws, env=env)
 
 
@@ -146,8 +147,10 @@ def mutate_line(line, lang):
         return f"{m.group(1)}{m.group(2)} (!({m.group(3)})){m.group(4)}{eol}"
     if lang in (None, "python") and not body.rstrip().endswith((":", "(", "[", "{", ",", "\\")) \
             and not body.lstrip().startswith((")", "]", "}", "else", "elif", "except", "finally")) \
-            and body.strip() not in ("return", "pass", "continue", "break", "...", "yield"):
-        # (deleting a bare return/pass/continue/break is usually an equivalent mutant: no test can see it)
+            and body.strip() not in ("return", "pass", "continue", "break", "...", "yield") \
+            and not re.fullmatch(r"return\s+(None|False|NotImplemented)", body.strip()):
+        # (deleting a bare return/pass/continue/break is usually an equivalent mutant: no test can see it;
+        # so is deleting `return None/False/NotImplemented`, since falling through returns None, also falsy)
         # Statement deletion: if a new line can disappear and every test still passes, it is untested.
         indent = body[:len(body) - len(body.lstrip())]
         return f"{indent}pass{eol}"
@@ -383,12 +386,129 @@ def _probe_run(ws, root, module, name, ids):
         return run_tests(ws, ids, env=env)
 
 
+# ---------------------------------------------------------------- 5. property checks (Python)
+
+TEMPLATES = ("len", "reversed", "getitem", "contains", "eq_hash", "reference", "single_pass")
+PROP_SITECUSTOMIZE = "from mihad_memory.experience import propcheck as _p\n_p.install()\n"
+
+
+def experience_dir(cfg):
+    env = os.environ.get("MIHAD_EXPERIENCE_DIR")
+    return Path(env) if env else project.path_in(cfg, "experience_dir")
+
+
+def adopted_templates(cfg):
+    """Templates adopted for this project by calibration (properties.calibrate); all of them before."""
+    f = experience_dir(cfg) / "properties.json"
+    if f.exists():
+        try:
+            return list(json.loads(f.read_text(encoding="utf-8"))["adopted"])
+        except (ValueError, KeyError):
+            pass
+    return list(TEMPLATES)
+
+
+def prop_targets(ws):
+    """(module, name, import root) for the changed top-level Python functions and classes."""
+    ws = Path(ws)
+    out = []
+    for path, names in changed_symbols(ws).items():
+        if not path.endswith(".py"):
+            continue
+        parts = Path(path).with_suffix("").parts
+        root = ws
+        if parts[0] == "src" and len(parts) > 1:
+            root, parts = ws / "src", parts[1:]
+        if parts[-1] == "__init__":
+            parts = parts[:-1]
+        out += [(".".join(parts), n, root) for n in names if not n.startswith("_")]
+    return out
+
+
+def prop_run(ws, root, targets, templates, ids):
+    """Run the tests with the property checks loaded; {function: [findings]}."""
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / "sitecustomize.py").write_text(PROP_SITECUSTOMIZE, encoding="utf-8")
+        out = Path(tmp) / "out"
+        out.mkdir()
+        env = dict(os.environ, MIHAD_PROP_TARGETS=json.dumps([[m, n] for m, n, _ in targets]),
+                   MIHAD_PROP_TEMPLATES=json.dumps(templates), MIHAD_PROP_OUT=str(out),
+                   PYTHONPATH=os.pathsep.join([tmp, str(root), str(ws), str(project.MIHAD_ROOT),
+                                               os.environ.get("PYTHONPATH", "")]))
+        run_tests(ws, ids, env=env)
+        res = {}
+        for f in out.glob("*.json"):
+            try:
+                d = json.loads(f.read_text(encoding="utf-8"))
+                res[d["function"]] = d["findings"]
+            except (ValueError, KeyError):
+                continue
+        return res
+
+
+# Words in a task that make an already-existing property failure relevant to it.
+RELEVANCE = {"len": ("len", "length", "size", "count"), "reversed": ("revers",),
+             "getitem": ("index", "getitem", "slice", "item"), "contains": ("contain", "index", "membership"),
+             "eq_hash": ("eq", "hash", "equal"),
+             "reference": ("eq", "hash", "equal", "consistent", "match", "behav", "like"),
+             "single_pass": ("iter", "reuse", "stream", "once", "consum", "generator")}
+
+
+def relevant(template, task_text):
+    if not task_text:
+        return True
+    text = task_text.lower()
+    return any(w in text for w in RELEVANCE.get(template, ()))
+
+
+def property_checks(ws, cfg, templates=None, task_text=None):
+    """Counterexamples to properties of the changed functions, found by calling them with variations of
+    the arguments their tests use. Reported even when the starting commit fails too: the changed
+    function is what the task is about, and the counterexample may be the bug itself."""
+    ws = Path(ws)
+    templates = templates if templates is not None else adopted_templates(cfg)
+    targets = prop_targets(ws)
+    if not targets or not templates:
+        return []
+    ids = test_ids(ws, cfg, sorted({n for _, n, _ in targets}), changed_tests(ws, cfg))
+    root = targets[0][2]
+    now = prop_run(ws, root, targets, templates, ids)
+    if not any(now.values()):
+        return []
+    rel_root = root.relative_to(ws)
+    with tempfile.TemporaryDirectory() as tmp:
+        base = copy_workspace(ws, Path(tmp) / "ws")
+        for path in added_lines(ws):
+            head = git(ws, "show", f"HEAD:{path}", check=False)
+            if head:
+                (base / path).write_text(head, encoding="utf-8")
+        before = prop_run(base, base / rel_root, targets, templates, ids)
+    out = []
+    for name, found in now.items():
+        old = {f["template"] for f in before.get(name, [])}
+        for f in found:
+            at_start = f["template"] in old
+            # A failure the change introduced is always reported; one the starting commit already had only
+            # when the task is about that behaviour (otherwise it is an unrelated old bug, a distraction).
+            if not at_start or relevant(f["template"], task_text):
+                out.append({"kind": "property", **f, "at_start": at_start})
+    return out
+
+
 # ---------------------------------------------------------------- all checks
 
 def describe(f):
     if f["kind"] == "survived":
-        return (f"Your change is not fully tested: if `{f['before']}` in {f['path']}:{f['line']} became "
-                f"`{f['after']}`, all tests would still pass. Add a test that fails for that.")
+        if f.get("status") == "survives":
+            return (f"Still untested: with `{f['before']}` in {f['path']}:{f['line']} replaced by `{f['after']}`, "
+                    f"your tests (including the new ones) still all pass. A test for this line must take an input "
+                    f"that reaches it and assert a value that changes when the line is replaced.")
+        return (f"Executed on your change: if `{f['before']}` in {f['path']}:{f['line']} became "
+                f"`{f['after']}`, all tests would still pass, so this line is untested. Add a test that reaches "
+                f"this line and fails for that replacement.")
+    if f["kind"] == "self_check":
+        return (f"Your own check printed `{f['line']}` (command: {f['command']}) and you made no edit after it. "
+                f"Find out why it reported a mismatch before finishing.")
     if f["kind"] == "untested":
         return f"Your change is not tested: {f['detail']}. Add a test for it."
     if f["kind"] == "format":
@@ -397,20 +517,62 @@ def describe(f):
         return f"New lint findings in {f['path']}: " + "; ".join(f"{c} {m}" for c, m in f["codes"])
     if f["kind"] == "preference":
         return f"Your standing preference \"{f['preference']}\" is not met: {f['detail']}."
+    if f["kind"] == "property":
+        where = (" The code at the starting commit fails this too, so it may be the bug the task is about."
+                 if f.get("at_start") else " The code at the starting commit did not fail this: your change broke it.")
+        return (f"Executed on your change: {f['detail']}.{where} Fix the code (not the check), and add this "
+                f"call as a test.")
     if f["kind"] == "iterator":
         return (f"`{f['function']}` takes an iterable but fails when it receives a one-shot iterator instead of "
                 f"a list ({f['detail']}). Do not read the input twice or call len() on it.")
     return str(f)
 
 
-def run_all(ws, cfg, max_findings=4):
+def run_all(ws, cfg, max_findings=4, props=False, task_text=None):
     findings = []
-    for check in (preference_checks, iterator_probe, mutation_adequacy, format_and_lint):
+    checks = [preference_checks, iterator_probe, mutation_adequacy, format_and_lint]
+    if props:
+        checks.insert(0, lambda w, c: property_checks(w, c, task_text=task_text))
+    for check in checks:
         try:
             found = check(ws, cfg)
         except Exception as exc:  # a check that cannot run must never block the agent
-            found = [{"kind": "error", "check": check.__name__, "detail": str(exc)[:200]}]
+            found = [{"kind": "error", "check": getattr(check, "__name__", "check"), "detail": str(exc)[:200]}]
         findings += [f for f in found if f["kind"] != "error"]
     survived = [f for f in findings if f["kind"] == "survived"]
     others = [f for f in findings if f["kind"] != "survived"]
     return (others + survived[:2])[:max_findings]
+
+
+def recheck_survived(ws, cfg, previous):
+    """Re-run earlier surviving mutants against the tests as they are now: killed, still surviving, or the
+    line is gone (changed by the agent)."""
+    ws = Path(ws)
+    out = []
+    symbols = sorted({s for v in changed_symbols(ws).values() for s in v})
+    ids = test_ids(ws, cfg, symbols, changed_tests(ws, cfg))
+    with tempfile.TemporaryDirectory() as tmp:
+        copy = copy_workspace(ws, Path(tmp) / "ws")
+        if run_tests(copy, ids)[0] != 0:
+            return [{**f, "status": "tests_fail"} for f in previous]
+        for f in previous:
+            target = copy / f["path"]
+            if not target.exists():
+                out.append({**f, "status": "gone"})
+                continue
+            original = target.read_text(encoding="utf-8")
+            lines = original.splitlines(keepends=True)
+            idx = next((i for i, l in enumerate(lines) if l.strip() == f["before"]), None)
+            if idx is None:
+                out.append({**f, "status": "gone"})
+                continue
+            indent = lines[idx][:len(lines[idx]) - len(lines[idx].lstrip())]
+            eol = lines[idx][len(lines[idx].rstrip("\r\n")):]
+            lines[idx] = indent + f["after"] + eol
+            target.write_text("".join(lines), encoding="utf-8")
+            try:
+                code, _ = run_tests(copy, ids)
+            finally:
+                target.write_text(original, encoding="utf-8")
+            out.append({**f, "line": idx + 1, "status": "survives" if code == 0 else "killed"})
+    return out

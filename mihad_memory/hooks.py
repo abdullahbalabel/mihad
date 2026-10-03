@@ -162,7 +162,7 @@ def handle(agent, data):
             if not meta.get("started"):
                 live.record(engine, "start", cwd, str(s.steps), prompt)
                 live.ingest(engine)
-        s.put_meta(started=True, reviewed=False, tree=tree_signature(cwd))
+        s.put_meta(started=True, reviewed=False, review_round=0, tree=tree_signature(cwd))
         model = os.environ.get("MIHAD_EXPERIENCE_MODEL") or s.get_meta().get("model")
         text = brief_mod.brief(engine, cwd, prompt, model)
         if not env_mode:
@@ -197,12 +197,27 @@ def handle(agent, data):
             tests_ok = failures.tests_after_last_edit(str(s.state)) if s.state.exists() else None
             live.record(engine, "end", cwd, str(s.steps), tests_ok=tests_ok)
         meta = s.get_meta()
+        checks = bool(os.environ.get("MIHAD_EXPERIENCE_CHECKS")) if env_mode else bool(cfg.get("checks"))
+        props = bool(os.environ.get("MIHAD_EXPERIENCE_PROPS")) if env_mode else bool(cfg.get("properties"))
+        tests_ok = failures.tests_after_last_edit(str(s.state)) if s.state.exists() else None
+        if props:
+            # Round 1 reviews, round 2 re-checks after the agent's reply (and may block once more), round 3
+            # only measures. Bounded, so a stop caused by our own block is safe to review again.
+            rnd = meta.get("review_round", 0)
+            if rnd >= 3:
+                return None
+            s.put_meta(review_round=rnd + 1)
+            if rnd == 0:
+                res = review_mod.review(engine, cwd, tests_ok, str(s.cache), str(s.state), edges, checks, props)
+                if not res["text"]:
+                    s.put_meta(review_round=3)
+            else:
+                res = review_mod.recheck(engine, cwd, tests_ok, str(s.state), props, final=rnd >= 2)
+            return {"decision": "block", "reason": res["text"]} if res["text"] else None
         # One extra turn at most: never block a stop that a block already caused.
         if data.get("stop_hook_active") or meta.get("reviewed"):
             return None
         s.put_meta(reviewed=True)
-        tests_ok = failures.tests_after_last_edit(str(s.state)) if s.state.exists() else None
-        checks = bool(os.environ.get("MIHAD_EXPERIENCE_CHECKS")) if env_mode else bool(cfg.get("checks"))
         res = review_mod.review(engine, cwd, tests_ok, str(s.cache), str(s.state), edges, checks)
         return {"decision": "block", "reason": res["text"]} if res["text"] else None
 

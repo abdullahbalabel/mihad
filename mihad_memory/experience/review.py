@@ -113,9 +113,63 @@ def edge_checklist(engine, ws, state_path=None):
     return out
 
 
-def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, edges=False, checks=False):
+def _self_check(state_path):
+    """The agent's own check reported a mismatch and no edit followed it."""
+    if not state_path or not Path(state_path).exists():
+        return []
+    st = json.loads(Path(state_path).read_text(encoding="utf-8"))
+    sc = st.get("self_check_fail")
+    if sc and sc["step"] > st.get("last_edit", 0):
+        return [{"kind": "self_check", "line": sc["line"], "command": sc["command"]}]
+    return []
+
+
+def recheck(engine, ws, tests_after_edit=None, state_path=None, props=False, final=False):
+    """Review round 2+: re-run what the previous round found, on the change as it is now. Reports what is
+    still wrong (a mutant the new tests still do not kill, a property that still fails). With final=True it
+    only measures and logs: the agent gets no further turn."""
+    from .. import project
+    from . import probes
+    ws = Path(ws)
+    rpath = Path(f"{state_path}.review.json") if state_path else None
+    prev = json.loads(rpath.read_text(encoding="utf-8")) if rpath and rpath.exists() else {"round": 1, "checks": []}
+    cfg = project.load(ws)
+    survived = [f for f in prev["checks"] if f["kind"] == "survived"]
+    found = probes.recheck_survived(ws, cfg, survived) if survived else []
+    still = [f for f in found if f["status"] == "survives"]
+    issues_found = list(still)
+    if any(f["kind"] == "property" for f in prev["checks"]) or props:
+        task = Path(f"{state_path}.task.txt").read_text(encoding="utf-8") if state_path and \
+            Path(f"{state_path}.task.txt").exists() else None
+        issues_found += [f for f in probes.property_checks(ws, cfg, task_text=task)]
+    if any(f["kind"] == "format" for f in prev["checks"]):
+        issues_found += [f for f in probes.format_and_lint(ws, cfg) if f["kind"] == "format"]
+    issues_found += _self_check(state_path)
+    issues = [probes.describe(f) for f in issues_found]
+    if tests_after_edit is False:
+        issues.append("You edited files after the last test run: run the tests again.")
+    rnd = prev.get("round", 1) + 1
+    engine.log("review", {"round": rnd, "final": final, "issues": issues, "checks": issues_found,
+                          "rechecked": found, "previous": prev["checks"]})
+    if rpath:
+        rpath.write_text(json.dumps({"round": rnd, "checks": issues_found}), encoding="utf-8")
+    if final or not issues:
+        return {"issues": issues, "text": ""}
+    text = ("[experience review] Re-checked on your change after your last reply; these are still wrong:\n"
+            + "\n".join(f"- {i}" for i in issues) + "\nFix them, then finish.")
+    return {"issues": issues, "text": text}
+
+
+def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, edges=False, checks=False,
+           props=False):
     ws = Path(ws)
     if not git(ws, "diff", "HEAD", "--stat", check=False).strip():
+        if props and state_path:  # a fix task that ends with no change at all
+            engine.log("review", {"issues": ["no change"], "checks": []})
+            return {"issues": ["no change"],
+                    "text": "[experience review] You are finishing without any change to the project's files. "
+                            "If the task asks for a fix, the code must change: reproduce the problem with a call "
+                            "that shows it, then fix it."}
         return {"issues": [], "text": ""}
     cache = {}
     if cache_path and Path(cache_path).exists():
@@ -139,12 +193,21 @@ def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, 
     if checks:  # executable checks: findings observed on this change, not advice (probes.py)
         from .. import project
         from . import probes
-        found = probes.run_all(ws, project.load(ws))
+        task = Path(f"{state_path}.task.txt").read_text(encoding="utf-8") if state_path and \
+            Path(f"{state_path}.task.txt").exists() else None
+        found = probes.run_all(ws, project.load(ws), props=props, task_text=task)
+        if props:
+            found += _self_check(state_path)
         issues += [probes.describe(f) for f in found]
     engine.fired("review", fired)
-    engine.log("review", {"issues": issues, "checks": found})
+    engine.log("review", {"round": 1, "issues": issues, "checks": found})
+    if state_path:
+        Path(f"{state_path}.review.json").write_text(json.dumps({"round": 1, "checks": found}), encoding="utf-8")
     text = ""
-    if issues:
+    if issues and props:
+        text = ("[experience review] Before you finish: these were found by checking and running your change:\n"
+                + "\n".join(f"- {i}" for i in issues) + "\nFix them, then finish.")
+    elif issues:
         text = ("[experience review] Before you finish, check these points from past work on this project:\n"
                 + "\n".join(f"- {i}" for i in issues)
                 + "\nFix what applies; if a point does not apply, say why in one line. Then finish.")

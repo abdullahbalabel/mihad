@@ -110,6 +110,8 @@ def _defaults(root):
             # Executable review checks (probes.py). On: in experiment engine3 they removed format
             # regressions (0 vs 10 in 42 runs) and raised the judge's score, for 2% more cost.
             "checks": True,
+            # Property checks of changed functions and closed-loop review rounds: off until measured (engine4).
+            "properties": False,
             "dream": {"agent": "omp", "auto_after_sessions": 0, "tasks_per_cycle": 4,
                       "model": "anthropic/claude-haiku-4-5",
                       "max_time": "15m", "visible": True}}
@@ -131,6 +133,20 @@ def _load(root_str):
 
 def load(root=None):
     return dict(_load(str(find_root(root))))
+
+
+def test_python(cfg):
+    """The interpreter that runs the project's tests: MIHAD_TEST_PYTHON, the `test_python` setting, the
+    project's own virtual environment (.venv, venv, env), else the interpreter MIHAD runs on."""
+    explicit = os.environ.get("MIHAD_TEST_PYTHON") or cfg.get("test_python")
+    if explicit:
+        return explicit
+    root = Path(cfg.get("root", "."))
+    for d in (".venv", "venv", "env"):
+        for exe in ("Scripts/python.exe", "bin/python"):
+            if (root / d / exe).exists():
+                return str(root / d / exe)
+    return sys.executable
 
 
 def clear_cache():

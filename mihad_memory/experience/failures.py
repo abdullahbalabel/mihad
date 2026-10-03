@@ -24,6 +24,9 @@ IGNORE = ("mihad_memory", "memory_recall", "memory_propose", "memory_report_outc
 
 # Test-run commands of every supported runner (failing tests are the work itself, not a tool pitfall;
 # a passing run after the last edit is what the review checks for).
+# Output of an agent's own check that reports a mismatch: "Match: False", "equal? False", "MISMATCH", a cross.
+SELF_CHECK_FAIL = re.compile(r"(?im)^.*(\b(match(es)?|equal|same|consistent|correct|ok|valid|pass(ed)?)\b[^\n]{0,20}"
+                             r"[:=?]\s*False\b|\bMISMATCH\b|✗|❌).*$")
 TEST_RUN = re.compile(r"\b(unittest|pytest|node --test|npm (run )?test|jest|vitest|mocha|mvn( -q)? test|gradlew?(\.bat)? test"
                       r"|dotnet test|go test|cargo test|phpunit|rspec|rake test|ctest|make test)\b")
 
@@ -113,6 +116,13 @@ def detect(engine, event, state_path, cwd=None):
                 st["fails"] = (st.get("fails", []) + [text[-1500:]])[-2:]
             else:
                 st["last_test_ok"] = st["step"]
+        else:
+            # The agent's own ad-hoc check said something is wrong (e.g. "Match: False"); the review raises it
+            # if the agent finishes without editing afterwards.
+            m = SELF_CHECK_FAIL.search(text)
+            if m:
+                line = text[max(0, text.rfind("\n", 0, m.start()) + 1):].split("\n", 1)[0].strip()
+                st["self_check_fail"] = {"step": st["step"], "line": line[:200], "command": cmd[:120]}
     if is_error:
         sig = normalize_error(text)
         for l in engine.active_lessons():

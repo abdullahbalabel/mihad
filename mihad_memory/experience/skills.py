@@ -9,7 +9,6 @@ import re
 import shlex
 import shutil
 import subprocess
-import sys
 import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -70,17 +69,18 @@ def test_classes_for(cwd, symbol):
 def _test_cmd(cwd, ids):
     cfg = project.load(cwd)
     if cfg["test_runner"] == "pytest":
-        return [sys.executable, "-m", "pytest", "-q", *ids]
+        return [project.test_python(cfg), "-m", "pytest", "-q", *ids]
     if cfg["test_runner"] == "unittest":
-        return [sys.executable, "-m", "unittest", *ids]
-    return resolve(langs.focused_command(cfg["test_runner"], ids) or shlex.split(cfg["test_command"]))
+        return [project.test_python(cfg), "-m", "unittest", *ids]
+    return resolve(langs.focused_command(cfg["test_runner"], ids) or shlex.split(cfg["test_command"]), cfg)
 
 
-def resolve(cmd):
-    """argv with the executable resolved (npm, npx, gradle... are .cmd files on Windows)."""
+def resolve(cmd, cfg=None):
+    """argv with the executable resolved (npm, npx, gradle... are .cmd files on Windows); `python` is the
+    project's test interpreter."""
     cmd = list(cmd)
     if cmd and cmd[0] in ("python", "python3"):
-        cmd[0] = sys.executable
+        cmd[0] = project.test_python(cfg or {})
     elif cmd:
         cmd[0] = shutil.which(cmd[0]) or cmd[0]
     return cmd
@@ -127,7 +127,8 @@ def skill_check_change(cwd):
         if code != 2:
             worst = max(worst, code)
         parts.append(f"[{s}] exit={code}\n{out}")
-    code, out = _run(resolve(shlex.split(project.load(cwd)["test_command"])), cwd)
+    cfg = project.load(cwd)
+    code, out = _run(resolve(shlex.split(cfg["test_command"]), cfg), cwd)
     worst = max(worst, code)
     parts.append(f"[full suite] exit={code}\n{_tail(out, 6)}")
     return (1 if worst else 0), "\n\n".join(parts)

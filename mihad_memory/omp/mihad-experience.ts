@@ -28,6 +28,7 @@ interface ProjectConfig {
 	mihad_root?: string;
 	edges?: boolean;
 	checks?: boolean;
+	properties?: boolean;
 	advisor?: boolean;
 	advisor_model?: string;
 }
@@ -61,6 +62,8 @@ export default function (pi: ExtensionAPI) {
 	const py = process.env.MIHAD_EXPERIENCE_PY || cfg?.python || "python";
 	const edges = envMode ? Boolean(process.env.MIHAD_EXPERIENCE_EDGES) : cfg!.edges === true;
 	const checks = envMode ? Boolean(process.env.MIHAD_EXPERIENCE_CHECKS) : cfg!.checks === true;
+	// Property checks and closed-loop review rounds (re-check after the agent's reply).
+	const props = envMode ? Boolean(process.env.MIHAD_EXPERIENCE_PROPS) : cfg!.properties === true;
 	const state =
 		process.env.MIHAD_EXPERIENCE_STATE ||
 		path.join(envMode ? os.tmpdir() : path.join(dir, "state"), `session-${Date.now()}-${process.pid}.json`);
@@ -73,6 +76,7 @@ export default function (pi: ExtensionAPI) {
 	const z = pi.zod;
 	let briefed = false;
 	let reviewed = false;
+	let reviewRound = 0;
 	let reviewTurnPending = false;
 	let started = false;
 
@@ -99,10 +103,13 @@ export default function (pi: ExtensionAPI) {
 		return m.provider ? `${m.provider}/${m.id}` : m.id;
 	}
 
-	async function runReview(cwd: string): Promise<string> {
+	async function runReview(cwd: string, mode: "full" | "recheck" | "final" = "full"): Promise<string> {
 		const args = ["review", "--cwd", cwd, "--state", state, "--cache", cache];
 		if (edges) args.push("--edges");
 		if (checks) args.push("--checks");
+		if (props) args.push("--props");
+		if (mode !== "full") args.push("--recheck");
+		if (mode === "final") args.push("--final");
 		return engine(args, 600_000);
 	}
 
@@ -114,6 +121,7 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 			reviewed = false; // a new request from the user gets its own review
+			reviewRound = 0;
 			const sessionFile = ctx.sessionManager?.getSessionFile?.() ?? "";
 			await engine(["live-prompt", "--cwd", ctx.cwd, "--task-file", taskFile, "--session-file", String(sessionFile),
 				...(started ? [] : ["--first"])]);
@@ -151,19 +159,36 @@ export default function (pi: ExtensionAPI) {
 			const sessionFile = ctx.sessionManager?.getSessionFile?.() ?? "";
 			await engine(["live-checkpoint", "--cwd", ctx.cwd, "--session-file", String(sessionFile), "--state", state]);
 		}
-		if (reviewed) return;
-		reviewed = true;
-		// Tell a runner a follow-up may come, so it does not close the session meanwhile.
+		fs.rmSync(busy, { force: true }); // the follow-up turn a review started has ended
+		let mode: "full" | "recheck" | "final";
+		if (props) {
+			// Round 1 reviews; round 2 re-checks after the agent's reply and may ask once more; round 3 only
+			// measures what the agent's last reply resolved.
+			if (reviewRound >= 3) return;
+			mode = reviewRound === 0 ? "full" : reviewRound === 1 ? "recheck" : "final";
+			reviewRound += 1;
+		} else {
+			if (reviewed) return;
+			reviewed = true;
+			mode = "full";
+		}
+		// Tell a runner a follow-up may come, so it does not close the session meanwhile. The marker stays
+		// until the follow-up turn ends (the next agent_end), not a fixed few seconds: a slow first reply
+		// must not let the runner close the session before the agent has answered the review.
 		fs.mkdirSync(path.dirname(busy), { recursive: true });
 		fs.writeFileSync(busy, String(Date.now()), "utf8");
+		let sent = false;
 		try {
-			const text = await runReview(ctx.cwd);
-			if (text) {
+			const text = await runReview(ctx.cwd, mode);
+			if (text && mode !== "final") {
 				reviewTurnPending = true;
+				sent = true;
 				pi.sendMessage({ customType: "mihad-experience-review", content: text, display: true }, { triggerTurn: true });
+			} else if (props && mode === "full") {
+				reviewRound = 3; // nothing found: nothing to re-check
 			}
 		} finally {
-			setTimeout(() => fs.rmSync(busy, { force: true }), 5_000);
+			if (!sent) fs.rmSync(busy, { force: true });
 		}
 	});
 
