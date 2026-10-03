@@ -53,6 +53,10 @@ def tool_steps(session_path):
     """Ordered tool steps of an OMP/Pi session file: name, arguments, error flag, result text."""
     calls, steps = {}, []
     for e in read_jsonl(session_path):
+        if e.get("kind") == "step":  # the engine's own step log, written by the agent hooks (hooks.py)
+            steps.append({"tool": e.get("tool"), "args": e.get("args") or {}, "error": bool(e.get("error")),
+                          "text": e.get("text") or ""})
+            continue
         # Session files store type=message; --mode json streams repeat it as message_start/_end.
         m = e.get("message") if e.get("type") in ("message", "message_end") else None
         if not isinstance(m, dict):

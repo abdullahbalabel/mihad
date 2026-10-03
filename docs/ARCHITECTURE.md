@@ -15,6 +15,7 @@ mihad_memory/
                     preference capture
   mcp_server.py     MCP server (stdio JSON-RPC) exposing the memory tools
   cli.py            mihad-memory: the human side of the memory
+  hooks.py          bridge for Claude Code and Codex hooks: brief, live detection, review, live recording
   omp/mihad-experience.ts   OMP extension: brief, live detection, review, tools, live recording
   experience/
     engine.py       the experience store (files under .mihad/experience)
@@ -29,7 +30,8 @@ mihad_memory/
     competence.py   per-family and per-model competence
     skills.py       compiled skills and test discovery
     dream.py        practice tasks by mutation; A/B evaluation of lessons
-    practice.py     runs practice tasks in OMP in isolated workspaces
+    practice.py     runs practice tasks in OMP, Claude Code or Codex, in isolated workspaces
+    tee.py          shows a print-mode practice session in its window and saves its event log
     cycle.py        the full learning cycle; background start every N sessions
     advisor.py      stronger-model consultation when stuck (optional)
     report.py       the human-readable report

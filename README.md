@@ -9,7 +9,8 @@ Coding agents start every session like a new hire on day one: they forget yester
 - **An experience engine.** It learns operational experience from finished sessions (tool pitfalls, the corrections you make after the agent, verified skills, verifier scripts), briefs the agent at the start of each request, warns it live, and reviews its change before it finishes.
 - **Dreaming.** Between sessions it practises on mutated versions of past fixes, with and without its lessons, and keeps a lesson only if the A/B test shows it helps.
 - **Ten languages.** Python, JavaScript/TypeScript, Java, Kotlin, C#, Go, Rust, PHP, Ruby, C/C++.
-- **No dependencies.** Standard-library Python; works with the [OMP](https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent) coding agent through MCP and an extension.
+- **Three agents.** [OMP](https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent), Claude Code (terminal and desktop) and Codex, with live warnings and a mandatory review in each, through an extension or hooks.
+- **No dependencies.** Standard-library Python.
 
 The design and every experiment behind it are in the research paper: [paper/MIHAD_Research_Paper_EN_v1.8.md](paper/MIHAD_Research_Paper_EN_v1.8.md).
 
@@ -27,7 +28,7 @@ All results are exploratory (one run per cell, one main repository). See the pap
 
 ## Quick start
 
-Requirements: Python 3.12+, git, and the OMP coding agent (`omp`) signed in.
+Requirements: Python 3.12+, git, and at least one of OMP, Claude Code or Codex.
 
 ```bash
 git clone https://github.com/abdullahbalabel/mihad.git
@@ -39,10 +40,12 @@ Install it into one of your projects (a git repository). Preview first, then ins
 
 ```bash
 mihad-install D:/path/to/your/project --dry-run
-mihad-install D:/path/to/your/project
+mihad-install D:/path/to/your/project                    # OMP
+mihad-install D:/path/to/your/project --agent claude     # Claude Code
+mihad-install D:/path/to/your/project --agent codex      # Codex (trust the project in Codex once)
 ```
 
-Then work with `omp` inside the project as usual. To see what the engine learned and what the memory kept:
+Then work with your agent inside the project as usual. To see what the engine learned and what the memory kept:
 
 ```bash
 mihad report
@@ -53,6 +56,7 @@ Full guides:
 
 - [Installation](docs/INSTALL.md): requirements, install, uninstall, what is written where
 - [Usage](docs/USAGE.md): daily workflow, commands, configuration, dreaming
+- [Agents](docs/AGENTS.md): OMP, Claude Code and Codex: what each gets, setup, what has been verified
 - [Capabilities](docs/CAPABILITIES.md): every part, what it does and the evidence behind it
 - [Architecture](docs/ARCHITECTURE.md): modules, data files and how the parts connect
 - [Research](docs/RESEARCH.md): summary of the findings, with links to the paper

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0 — 2026-10-03
+
+- **Claude Code and Codex.** `mihad-install --agent claude|codex` wires the memory (MCP) and the experience engine through hooks:
+  - the brief on `UserPromptSubmit`;
+  - live warnings on `PostToolUse`;
+  - a mandatory review on `Stop`, blocking once per request;
+  - session counting and automatic dreaming on `SessionEnd`.
+
+  One bridge, `mihad_memory.hooks`, serves both agents, and existing settings are kept.
+- **Agent-neutral learning.** Tool steps are recorded in the engine's own log, so learning does not depend on transcript formats.
+- **Practice with any agent.** `dream.agent` chooses `omp`, `claude` or `codex` for practice sessions. Print-mode sessions are shown in a visible window and their event log is saved.
+- **Codex on Windows.** Hook commands use the PowerShell call operator, and practice runs pass the hooks inline because practice folders are never trusted projects.
+- **Verified live with Codex:**
+  - the brief, step recording and a mandatory review that blocked a stop;
+  - a full practice pair.
+- **Claude Code:** the hooks fired in a real session; a full session awaits a signed-in standalone CLI.
+
 ## 1.0.0 — 2026-10-03
 
 First standalone release, separated from the experiments repository. It keeps what the experiments supported and turns off what they did not.

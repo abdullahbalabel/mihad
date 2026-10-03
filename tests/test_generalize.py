@@ -215,7 +215,7 @@ class PracticeCycleTests(unittest.TestCase):
         task = spec["tasks"][0]
         self.assertEqual(task["families"], ["first_word"])
 
-        def fake_agent(cmd, ws, out_dir, env, seconds, visible, busy):
+        def fake_agent(cmd, ws, out_dir, env, seconds, visible, busy, self_ending=False):
             # The "agent" repairs the file by restoring the user's fixed version; one arm is slower.
             subprocess.run(["git", "apply", "-R", "-"], input=task["base_patch"], text=True, cwd=ws, check=True)
             msg = {"type": "message", "message": {"role": "assistant", "content": [],

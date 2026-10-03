@@ -2,7 +2,7 @@
 
 ## Daily workflow
 
-After `mihad-install`, use `omp` in the project as you normally would. MIHAD works around each request.
+After `mihad-install`, use your agent (OMP, Claude Code or Codex) in the project as you normally would. MIHAD works around each request.
 
 1. **Brief.** At the start of each request the agent receives a short brief. It includes:
    - the verified memory items, with your preferences first;
@@ -103,11 +103,13 @@ A cycle needs code with conditions or arithmetic to mutate. Code that only chain
 | `advisor` | `false` | Let a stuck session consult a stronger model once |
 | `advisor_model` | `anthropic/claude-sonnet-5` | The advisor's model |
 | `review_checkers` | on for Python and JS/TS | Run verifier scripts at review; slow for compiled languages |
+| `dream.agent` | `omp` | Agent for practice sessions: `omp`, `claude` or `codex` (see [Agents](AGENTS.md)) |
 | `dream.auto_after_sessions` | `0` (off) | Start a background dream cycle every N sessions |
 | `dream.tasks_per_cycle` | `4` | Practice tasks per cycle |
 | `dream.model` | `anthropic/claude-haiku-4-5` | Model for practice sessions |
 | `dream.max_time` | `15m` | Time limit per practice session |
 | `dream.visible` | `true` | Open practice sessions in visible windows |
+| `agent_commands` | none | Paths to agent commands not on PATH, e.g. `{"codex": "C:/…/codex.exe"}` |
 | `python`, `mihad_root` | set by the installer | Where the tool runs from; refreshed on reinstall |
 
 Memory retrieval can be tuned with environment variables on the MCP server in `.omp/mcp.json`:

@@ -7,4 +7,4 @@ lesson only when an A/B test shows it helps.
 Copyright (c) 2026 Abdullah Mohammed Balabel.
 Licensed under the PolyForm Noncommercial License 1.0.0; see LICENSE.
 """
-__version__ = "1.0.0"
+__version__ = "1.1.0"

@@ -166,7 +166,7 @@ class JavaScriptRunTests(unittest.TestCase):
         self.assertIn("src/cart.mjs", task["base_patch"])
         self.assertEqual(task["hidden_test_files"], ["test/cart.test.mjs"])
 
-        def fake_agent(cmd, ws, out_dir, env, seconds, visible, busy):
+        def fake_agent(cmd, ws, out_dir, env, seconds, visible, busy, self_ending=False):
             subprocess.run(["git", "apply", "-R", "-"], input=task["base_patch"], text=True, cwd=ws, check=True)
             (out_dir / "agent.jsonl").write_text("", encoding="utf-8")
 

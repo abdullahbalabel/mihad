@@ -75,8 +75,87 @@ def _kill(proc):
         proc.wait()
 
 
-def _run_agent(cmd, ws, out_dir, env, seconds, visible, busy):
-    if visible:
+def find_agent(name, cfg=None):
+    """Path of an agent's command: the config override, PATH, or the usual install folders."""
+    override = ((cfg or {}).get("agent_commands") or {}).get(name)
+    if override:
+        return override
+    found = shutil.which(name)
+    if found:
+        return found
+    home = Path.home()
+    patterns = {
+        "claude": [Path(os.environ.get("APPDATA", home)) / "Claude" / "claude-code", home / ".local" / "bin"],
+        "codex": [Path(os.environ.get("LOCALAPPDATA", home)) / "OpenAI" / "Codex" / "bin"],
+    }.get(name, [])
+    hits = [x for base in patterns if base.is_dir() for x in base.rglob(f"{name}.exe")]
+    return str(max(hits, key=lambda x: x.stat().st_mtime)) if hits else name
+
+
+def agent_model(agent, model):
+    """The configured practice model in the form each agent's CLI expects."""
+    if agent == "claude":
+        return model.split("/", 1)[1] if model and model.startswith("anthropic/") else model
+    if agent == "codex":
+        return None if not model or model.startswith("anthropic/") else model  # None: the user's Codex default
+    return model
+
+
+def agent_command(agent, cfg, prompt, out_dir, run_dir, ws=None):
+    """argv for one practice session, and whether it ends by itself (print modes) or must be watched."""
+    dc = cfg["dream"]
+    model = agent_model(agent, dc["model"])
+    if agent == "claude":
+        cmd = [find_agent("claude", cfg), "-p", "--output-format", "stream-json", "--verbose",
+               "--dangerously-skip-permissions"] + (["--model", model] if model else []) + [prompt]
+        return cmd, True
+    if agent == "codex":
+        from .. import install
+        # Hooks are passed inline: a fresh practice folder is never a trusted Codex project, so its own
+        # .codex/ layer would not load.
+        hooks = install.codex_inline_hooks(Path(ws) / ".mihad" / install.LAUNCHER) if ws else []
+        cmd = [find_agent("codex", cfg), "exec", "--json", "--skip-git-repo-check", "--dangerously-bypass-hook-trust",
+               "--dangerously-bypass-approvals-and-sandbox", *hooks] + (["--model", model] if model else []) + [prompt]
+        return cmd, True
+    mode = ["--session-dir", str(out_dir / "session")] if dc.get("visible") else ["-p", "--mode", "json", "--no-session"]
+    return ["omp", *mode, "--no-extensions", "--extension", str(EXTENSION), "--no-skills", "--no-rules",
+            "--model", model, "--tools", TOOLS, "--config", str(run_dir / "omp_overlay.yml"),
+            "--max-time", dc["max_time"], "--auto-approve", prompt], not dc.get("visible")
+
+
+def wire_hooks(ws, agent):
+    """Practice workspaces for Claude Code and Codex get the hook bridge, like an installed project."""
+    from .. import install
+    import sys as _sys
+    launcher = ws / ".mihad" / install.LAUNCHER
+    launcher.parent.mkdir(parents=True, exist_ok=True)
+    launcher.write_text("import sys\n" f"sys.path.insert(0, {str(project.MIHAD_ROOT)!r})\n"
+                        "from mihad_memory.hooks import main\nsys.exit(main())\n", encoding="utf-8")
+    if agent == "claude":
+        doc = install._merge_hooks({}, lambda e: {"type": "command", "command": _sys.executable,
+                                                  "args": [str(launcher), "claude"]})
+        target = ws / ".claude" / "settings.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+    # Codex: the launcher is enough; the hooks themselves go on the command line (agent_command).
+
+
+def _run_visible_print(cmd, ws, out_dir, env, seconds):
+    """A print-mode agent in its own visible console: the output is shown there and saved to agent.jsonl."""
+    log = out_dir / "agent.jsonl"
+    env = dict(env, PYTHONPATH=str(project.MIHAD_ROOT) + os.pathsep + env.get("PYTHONPATH", ""))
+    proc = subprocess.Popen([sys.executable, "-m", "mihad_memory.experience.tee", str(log), *cmd], cwd=ws, env=env,
+                            creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
+    try:
+        proc.wait(timeout=seconds)
+    except subprocess.TimeoutExpired:
+        _kill(proc)
+
+
+def _run_agent(cmd, ws, out_dir, env, seconds, visible, busy, self_ending=False):
+    if visible and self_ending and os.name == "nt":
+        return _run_visible_print(cmd, ws, out_dir, env, seconds)
+    if visible and not self_ending:
         proc = subprocess.Popen(cmd, cwd=ws, env=env, creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0))
         start = time.time()
         while proc.poll() is None and time.time() - start < seconds:
@@ -99,9 +178,25 @@ def _run_agent(cmd, ws, out_dir, env, seconds, visible, busy):
 
 
 def _usage(path):
+    """Token usage and turns from an OMP, Claude Code (stream-json) or Codex (exec --json) event log."""
     usage = {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0}
     turns = 0
-    for e in read_jsonl(path):
+    events = read_jsonl(path)
+    result = next((e for e in events if e.get("type") == "result" and e.get("usage")), None)
+    if result:  # Claude Code: the final result holds the session totals
+        u = result["usage"]
+        usage.update(input=u.get("input_tokens", 0), output=u.get("output_tokens", 0),
+                     cacheRead=u.get("cache_read_input_tokens", 0), cacheWrite=u.get("cache_creation_input_tokens", 0))
+        return usage, result.get("num_turns") or sum(1 for e in events if e.get("type") == "assistant")
+    codex = [e for e in events if e.get("type") == "turn.completed" and e.get("usage")]
+    if codex:
+        for e in codex:
+            u = e["usage"]
+            usage["input"] += u.get("input_tokens", 0) - u.get("cached_input_tokens", 0)
+            usage["cacheRead"] += u.get("cached_input_tokens", 0)
+            usage["output"] += u.get("output_tokens", 0)
+        return usage, len(codex)
+    for e in events:
         m = e.get("message") if e.get("type") in ("message", "turn_end") else None
         if isinstance(m, dict) and m.get("role") == "assistant":
             turns += 1
@@ -143,7 +238,8 @@ def run_one(engine, run_dir, task, arm, repo, cfg, ws_root):
     ws.mkdir(parents=True)
     export_tree(repo, task["parent"], ws)
     git(ws, "init", "-q")
-    (ws / ".git" / "info" / "exclude").write_text(".omp/\n.mihad/\n__pycache__/\n", encoding="utf-8")
+    (ws / ".git" / "info" / "exclude").write_text(".omp/\n.mihad/\n.claude/\n.codex/\n__pycache__/\n",
+                                                  encoding="utf-8")
     if task.get("base_patch"):
         (ws / ".base.patch").write_text(task["base_patch"], encoding="utf-8")
         git(ws, "apply", ".base.patch")
@@ -161,10 +257,10 @@ def run_one(engine, run_dir, task, arm, repo, cfg, ws_root):
                            sources=", ".join(cfg["source_dirs"]), test_command=cfg["test_command"])
     (out_dir / "prompt.txt").write_text(prompt, encoding="utf-8")
     dc = cfg["dream"]
-    mode = ["--session-dir", str(out_dir / "session")] if dc.get("visible") else ["-p", "--mode", "json", "--no-session"]
-    cmd = ["omp", *mode, "--no-extensions", "--extension", str(EXTENSION), "--no-skills", "--no-rules",
-           "--model", dc["model"], "--tools", TOOLS, "--config", str(run_dir / "omp_overlay.yml"),
-           "--max-time", dc["max_time"], "--auto-approve", prompt]
+    agent = dc.get("agent", "omp")
+    if agent in ("claude", "codex"):
+        wire_hooks(ws, agent)
+    cmd, self_ending = agent_command(agent, cfg, prompt, out_dir, run_dir, ws)
     state = out_dir / "experience_state.json"
     env = dict(os.environ, PIP_REQUIRE_VIRTUALENV="true", MIHAD_EXPERIENCE_DIR=str(engine.root),
                MIHAD_EXPERIENCE_ROOT=str(project.MIHAD_ROOT), MIHAD_EXPERIENCE_PY=sys.executable,
@@ -175,7 +271,8 @@ def run_one(engine, run_dir, task, arm, repo, cfg, ws_root):
                MIHAD_EXPERIENCE_ADVISOR="1" if cfg.get("advisor") else "",
                MIHAD_EXPERIENCE_PRACTICE="1")  # practice sessions are not recorded as live sessions
     started = time.time()
-    _run_agent(cmd, ws, out_dir, env, _seconds(dc["max_time"]) + 60, dc.get("visible"), Path(f"{state}.busy"))
+    _run_agent(cmd, ws, out_dir, env, _seconds(dc["max_time"]) + 60, dc.get("visible"), Path(f"{state}.busy"),
+               self_ending)
     seconds = round(time.time() - started, 1)
     (out_dir / "agent.diff").write_text(git(ws, "diff", "HEAD", check=False), encoding="utf-8")
     for tf in task.get("hidden_test_files") or []:
