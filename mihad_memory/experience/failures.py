@@ -106,6 +106,9 @@ def detect(engine, event, state_path, cwd=None):
     if tool == "bash" and TEST_RUN.search(str(args.get("command", ""))) and not is_error:
         st["last_test"] = st["step"]
     st["streak"] = st["streak"] + 1 if is_error else 0
+    if is_error:  # every mistake, remembered with a short signature (the selective advisor looks for patterns)
+        sig = normalize_error(text) or normalize_command(str(args.get("command", ""))) or str(tool)
+        st["mistakes"] = (st.get("mistakes", []) + [{"step": st["step"], "sig": sig[:120]}])[-20:]
     if tool == "bash" and args.get("command"):
         cmd = str(args["command"])
         st.setdefault("commands", []).append(cmd[:200])
@@ -123,6 +126,8 @@ def detect(engine, event, state_path, cwd=None):
             if m:
                 line = text[max(0, text.rfind("\n", 0, m.start()) + 1):].split("\n", 1)[0].strip()
                 st["self_check_fail"] = {"step": st["step"], "line": line[:200], "command": cmd[:120]}
+                # A check of its own that reports a mismatch is a mistake too, though the command succeeded.
+                st["mistakes"] = (st.get("mistakes", []) + [{"step": st["step"], "sig": "own check: " + line[:100]}])[-20:]
     if is_error:
         sig = normalize_error(text)
         for l in engine.active_lessons():
@@ -150,6 +155,13 @@ def detect(engine, event, state_path, cwd=None):
             advice = advisor.advise(engine, cwd, advisor.task_text_for(state_path), st, reason)
             if advice:
                 out.append(advice)
+    # The selective advisor (watch.py, on when MIHAD_WATCH_MODEL is set): maybe start a background consultation,
+    # and hand over the notes earlier ones produced.
+    from . import watch
+    watch.maybe_consult(st, event, state_path, cwd)
+    note = watch.pending_notes(state_path)
+    if note:
+        out.append(note)
     Path(state_path).parent.mkdir(parents=True, exist_ok=True)
     Path(state_path).write_text(json.dumps(st), encoding="utf-8")
     if out:

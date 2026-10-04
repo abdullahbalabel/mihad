@@ -69,6 +69,8 @@ def main(argv=None):
     p.add_argument("--props", action="store_true", help="also property checks, self-check failures, closed-loop rounds")
     p.add_argument("--recheck", action="store_true", help="round 2+: re-run what the previous round found")
     p.add_argument("--final", action="store_true", help="with --recheck: measure and log only, no further turn")
+    p = sub.add_parser("watch-consult"); p.add_argument("--cwd", required=True); p.add_argument("--state", required=True)
+    p.add_argument("--model", required=True); p.add_argument("--reason", required=True); p.add_argument("--event-file", required=True)
     p = sub.add_parser("skill"); p.add_argument("action", choices=["list", "run"]); p.add_argument("name", nargs="?")
     p.add_argument("--cwd", default="."); p.add_argument("--arg", action="append", default=[])
     sub.add_parser("status")
@@ -121,6 +123,9 @@ def main(argv=None):
             print(review_mod.recheck(eng, a.cwd, tests_ok, a.state, a.props, a.final)["text"], end="")
         else:
             print(review_mod.review(eng, a.cwd, tests_ok, a.cache, a.state, a.edges, a.checks, a.props)["text"], end="")
+    elif a.cmd == "watch-consult":
+        from . import watch
+        watch.consult(a.cwd, a.state, a.model, a.reason, a.event_file)
     elif a.cmd == "skill":
         if a.action == "list":
             print(json.dumps(eng.get("skills", {}), indent=2))
