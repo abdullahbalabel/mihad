@@ -180,19 +180,28 @@ export default function (pi: ExtensionAPI) {
 		// must not let the runner close the session before the agent has answered the review.
 		fs.mkdirSync(path.dirname(busy), { recursive: true });
 		fs.writeFileSync(busy, String(Date.now()), "utf8");
-		let sent = false;
-		try {
-			const text = await runReview(ctx.cwd, mode);
-			if (text && mode !== "final") {
-				reviewTurnPending = true;
-				sent = true;
-				pi.sendMessage({ customType: "mihad-experience-review", content: text, display: true }, { triggerTurn: true });
-			} else if (props && mode === "full") {
-				reviewRound = 3; // nothing found: nothing to re-check
+		// OMP gives an event handler at most 30 s, and a review that runs the tests takes minutes: past that
+		// budget OMP stops waiting and a late review was often lost. So the handler returns at once and the
+		// review runs on its own; its findings start a new turn when they are ready. The busy marker keeps a
+		// runner from closing the session meanwhile.
+		const cwd = ctx.cwd;
+		void (async () => {
+			let sent = false;
+			try {
+				const text = await runReview(cwd, mode);
+				if (text && mode !== "final") {
+					reviewTurnPending = true;
+					sent = true;
+					pi.sendMessage({ customType: "mihad-experience-review", content: text, display: true }, { triggerTurn: true });
+				} else if (props && mode === "full") {
+					reviewRound = 3; // nothing found: nothing to re-check
+				}
+			} catch (err) {
+				pi.logger.debug("mihad review failed", { err: String(err) });
+			} finally {
+				if (!sent) fs.rmSync(busy, { force: true });
 			}
-		} finally {
-			if (!sent) fs.rmSync(busy, { force: true });
-		}
+		})();
 	});
 
 	pi.on("session_shutdown", async (_event, ctx) => {
