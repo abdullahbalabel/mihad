@@ -18,7 +18,7 @@
   <a href="#-quick-start">Quick start</a> •
   <a href="#-how-it-works">How it works</a> •
   <a href="#-documentation">Docs</a> •
-  <a href="paper/MIHAD_Research_Paper_EN_v1.9.md">Paper</a> •
+  <a href="paper/MIHAD_Research_Paper_EN_v2.0.md">Paper</a> •
   <a href="#-بالعربية">العربية</a>
 </p>
 
@@ -28,7 +28,7 @@
 
 Coding agents start every session like a new hire on day one. They forget yesterday's corrections and repeat the same mistakes. Saving everything they "learn" is not the answer either: an agent that remembers its own wrong conclusions repeats them with confidence.
 
-**MIHAD gives an agent a memory and a body of experience that grow with use, and it adopts nothing without independent evidence.** It is built on a research programme with pinned protocols, real repository history and a blind quality judge. See the [paper](paper/MIHAD_Research_Paper_EN_v1.9.md).
+**MIHAD gives an agent a memory and a body of experience that grow with use, and it adopts nothing without independent evidence.** It is built on a research programme with pinned protocols, real repository history and a blind quality judge. See the [paper](paper/MIHAD_Research_Paper_EN_v2.0.md).
 
 ## ✨ What it does
 
@@ -191,7 +191,7 @@ Every lesson has a gate before it is used:
 
 ## 📄 Research
 
-*Adopting Reasoning Outputs Only After Verification: The MIHAD Architecture, a Verified Memory and an Experience Engine for Coding Agents*, version 1.9 ([Markdown](paper/MIHAD_Research_Paper_EN_v1.9.md) · [Word](paper/MIHAD_Research_Paper_EN_v1.9.docx)).
+*Adopting Reasoning Outputs Only After Verification: The MIHAD Architecture, a Verified Memory and an Experience Engine for Coding Agents*, version 2.0 ([Markdown](paper/MIHAD_Research_Paper_EN_v2.0.md) · [Word](paper/MIHAD_Research_Paper_EN_v2.0.docx)).
 
 <details>
 <summary><b>Cite this work</b></summary>
@@ -203,7 +203,7 @@ Every lesson has a gate before it is used:
              a Verified Memory and an Experience Engine for Coding Agents},
   year    = {2026},
   month   = {10},
-  note    = {Version 1.9},
+  note    = {Version 2.0},
   url     = {https://github.com/abdullahbalabel/mihad}
 }
 ```

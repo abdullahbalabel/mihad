@@ -1,4 +1,4 @@
-<!-- Generated from _work/manuscript_v1.9_en.md by _work/export_md_v1.9_en.py -->
+<!-- Generated from _work/manuscript_v2.0_en.md by _work/export_md_v2.0_en.py -->
 <!-- © 2026 Abdullah Mohammed Balabel. Non-commercial use only; see LICENSE. -->
 
 # Adopting Reasoning Outputs Only After Verification
@@ -7,7 +7,7 @@
 
 Abdullah Mohammed Balabel
 
-Research design and exploratory results — Version 1.9 — October 2026
+Research design and exploratory results — Version 2.0 — October 2026
 
 ## Abstract
 
@@ -15,7 +15,7 @@ Language-model agents can store and retrieve experience, but storing a conclusio
 
 Three results hold across the studies. First, admission by evidence type protects the memory: in the evidence-independence test the gate exceeded the strongest of four required baselines by 12.8 points (92.4% vs 79.6%), although it matched origin-level aggregation, a known treatment of source dependence; and on the coding agent, deliberately planted wrong items were never followed. Second, the clearest positive effect concerns knowledge an agent cannot recover from the code: once standing user preferences were captured verbatim from the user's own words and labelled as such, verified memory carried them into every later task (15/15 vs 0/15). Third, knowledge about the code did not transfer to different later tasks: in a time-split test with 14 newer tasks, memory and automatically written project notes left success unchanged (11/14 and 10/14 vs 11/14) and raised cost by 16–17%.
 
-An experience engine that turns sessions into operational experience did better. It mines tool pitfalls, verifier scripts, the user's corrections and compiled skills, and gives a brief and a review sized by competence. It promotes a lesson only after an A/B test on practice tasks made by mutating past fixes. With this engine a weaker model kept the same success as without memory (11/14) at 14.4% lower cost, and the blind judge's quality score did not fall (3.93 vs 3.79). A second version that added a generic edge-case checklist and a stronger-model advisor did not raise success (10/14), cost more, and scored lower; generic guidance in every session behaves as noise. A third version replaced advice with executable review checks: before finishing, each line the agent added is mutated to see whether the tests notice, and formatting, lint and preference compliance are checked against the starting commit. Over three repetitions (42 runs per version) it raised success to 35/42 against 32/42 for both other versions, with no formatting regressions against ten, for 2% more cost. The judge's score rose to 3.98 against 3.74, but this follows the extra successes: among successful runs the versions differ by at most 0.11. Only one of the three extra successes is clearly linked to a finding, and property tests show that solution to be only partly correct, so the firm effect is on formatting. All results are exploratory and come from one main repository; only the last experiment was repeated. The tool has been generalized into a standalone package for ten programming languages. No claim of machine consciousness is made.
+An experience engine that turns sessions into operational experience did better. It mines tool pitfalls, verifier scripts, the user's corrections and compiled skills, and gives a brief and a review sized by competence. It promotes a lesson only after an A/B test on practice tasks made by mutating past fixes. With this engine a weaker model kept the same success as without memory (11/14) at 14.4% lower cost, and the blind judge's quality score did not fall (3.93 vs 3.79). A second version that added a generic edge-case checklist and a stronger-model advisor did not raise success (10/14), cost more, and scored lower; generic guidance in every session behaves as noise. A third version replaced advice with executable review checks: before finishing, each line the agent added is mutated to see whether the tests notice, and formatting, lint and preference compliance are checked against the starting commit. Over three repetitions (42 runs per version) it raised success to 35/42 against 32/42 for both other versions, with no formatting regressions against ten, for 2% more cost. The judge's score rose to 3.98 against 3.74, but this follows the extra successes: among successful runs the versions differ by at most 0.11. Only one of the three extra successes is clearly linked to a finding, and property tests show that solution to be only partly correct, so the firm effect is on formatting. Stronger checks did not generalize. Property templates, a contract ontology and rules learned from the project's own history were tested on two repositories the design had not seen, one of them with blindly selected tasks. They raised no false alarms but detected almost none of the failures there (0 of 47 in the blind repository), and in agent runs they did not raise success while costing 11–48% more. On the design's own data they had detected 23 of 24, so evaluation on unseen repositories decided the outcome. All results are exploratory; the later experiments were repeated three times. The tool has been generalized into a standalone package for ten programming languages. No claim of machine consciousness is made.
 
 Keywords: agent memory, continual learning, knowledge verification, adoption gate, experience engine, coding agents, developmental artificial intelligence.
 
@@ -654,6 +654,79 @@ Findings appeared in 21 of 41 reviewed sessions. Formatting findings were almost
 
 The result refines the lesson of v2. The useful signal is a specific fact observed by running the change, not a reminder of what might go wrong.
 
+### Generalization to Unseen Repositories: Three Negative Results
+
+A post-hoc analysis of the 126 engine3 sessions suggested a stronger review. In the hardest tasks, a property check on the changed function detected the error within a second, and in two of them the agent had the evidence on screen. Three further versions tested this idea. The property checks were designed after reading those failures, so each version was evaluated on a repository the design had not seen.
+
+- **Engine4.** It added hand-written property templates for the changed function: length against iteration, reversal, indexing, membership, equality and hashing, comparison with `range`, and single-pass inputs. It also added a closed-loop review that re-runs the surviving mutants against the agent's new tests.
+
+- **Engine5.** It replaced the templates with a contract ontology. Each object is classified by its interfaces (sequence, mapping, set, stream, value), and only the contract of its kind is checked. It added a fixed taxonomy of task behaviours, so a failure that already existed at the starting commit is reported only when the task is about that behaviour. It also cut cost with a single blocking review and a cache of check results.
+
+- **Learned project rules.** These were tested offline only. For each past fix of the project, a stronger model wrote a general rule of the project. A rule was adopted only if it failed before the fix, passed after it, and passed on the latest code before the evaluation period.
+
+Before engine5 was run, an independent read-only review of its code found seven confirmed defects:
+
+- the experiment would have run the old code;
+
+- a failing run at the starting commit made old failures look new;
+
+- classes built only in `__new__` could not be observed;
+
+- the behaviour patterns matched almost every task;
+
+- several contracts flagged correct objects.
+
+All seven were fixed before the protocol was pinned. The engine5 tasks were selected by a fixed rule without reading their titles.
+
+**Table 22. The stronger review on repositories the design had not seen (Haiku, 21 tasks × 3 repetitions)**
+
+| Version | Repository | Success | Comparison | Cost | Pinned decision |
+|---|---|---|---|---|---|
+| Engine4 | boltons | 51/63 | engine with checks 47/63 | +48% | Not adopted (needs +6 and at most +30% cost) |
+| Engine5 | bidict (blind selection) | 39/63 | engine with checks 40/63 | +11% | Not adopted |
+
+Neither version raised success beyond the noise threshold, and both cost more. The offline measurements explain why. The checks were run on the final state of every saved session and on the maintainers' own fixes, with no model calls.
+
+**Table 23. Offline coverage and false alarms of the property checks (final versions, contract ontology)**
+
+| Repository | Failed sessions detected | Passing sessions flagged | Maintainers' fixes flagged |
+|---|---|---|---|
+| more-itertools (the design's own data) | 23/24 | 0/88 | 1/70 |
+| boltons | 4/28 | 0/98 | 0/21 |
+| bidict | 0/47 | 0/79 | 0/21 |
+
+The precision was high in every repository. The one maintainers' fix flagged in more-itertools had a real inconsistency. Coverage collapsed outside the data the checks were designed from.
+
+**Boltons.** The failures concerned statistics, time zones, URL encoding and streams, not container contracts.
+
+**Bidict.** Two engineering gaps first hid the checks completely:
+
+- the fixes were in base classes while the tests build subclasses;
+
+- the tests ran in pytest-xdist worker processes, where the checks were not installed.
+
+Once both gaps were closed, the checks reached the objects and still detected nothing. The failures broke promises specific to the project:
+
+- one object per item in both directions;
+
+- pickled generated classes keep their order;
+
+- mutation during iteration is detected;
+
+- a refused write is rolled back completely.
+
+**Learned project rules.** Learning from the project's own history did not close this gap. From 44 fixes made before the evaluation period, 23 rules were adopted, about nine of them about style. None of the behavioural rules failed on any evaluation session. One rule had passed on the last code before the evaluation period, but legitimate later changes made it fail on every session and every maintainers' fix. A single stale rule therefore turned into a permanent false alarm.
+
+**Lessons.** The pattern is consistent:
+
+- generic executable checks were precise but rarely applicable;
+
+- checks shaped by known failures looked strong only on those failures;
+
+- the errors of a weaker model on new tasks were too varied, and too specific to each project's promises, for generic or historical rules to anticipate.
+
+Without the evaluation on unseen repositories, the in-sample result (23 of 24) would have been reported as a success. This is the most important methodological result of the series.
+
 ### Integrity of the Experiments
 
 While building the engine an audit found that one session of the notes arm had worked inside the no-memory arm's workspace and installed that workspace globally with pip. The arm before it had failed the same task, so there was no correct solution to copy, but the row was contaminated by protocol. It was removed and rerun in isolation, and failed, which lowered the notes result from 11/14 to 10/14. The global install was removed. Workspaces now live in random temporary folders outside the run directory and are deleted after grading, pip refuses global installs, and every result row records isolation flags; an audit of all earlier runs found no other access outside the workspace. Every fault, including the author's own mistakes during implementation, is logged with its cause and treatment.
@@ -670,7 +743,7 @@ In ordinary sessions the agent receives a brief at the start of each request wit
 
 The tool works with three coding agents. With OMP it runs as an extension. With Claude Code and Codex it runs through the agents' hooks, through one bridge: the brief when a request is submitted, live warnings after each tool call, the review when the agent tries to stop (blocking once per request), and session counting at the end of a session.
 
-**Table 22. Language support in the tool**
+**Table 24. Language support in the tool**
 
 | Language | Detection and function lookup | Test runners | Verified in this work |
 |---|---|---|---|
@@ -689,7 +762,7 @@ For languages other than Python, verifier scripts are test files written in the 
 
 Persistent memory can multiply the effect of an error if it is reused or built upon, which is one motive for the adoption gate itself. The design therefore separates source data, the agent's beliefs and the operating policy, checks permissions before retrieval, and records the source and version of every skill.
 
-**Table 23. Risks of continual learning and the proposed tests**
+**Table 25. Risks of continual learning and the proposed tests**
 
 | Risk | Control | What is tested |
 |---|---|---|
@@ -708,9 +781,9 @@ Passing these tests is evidence limited to what they covered and does not guaran
 
 A different structure may achieve the same behaviour, so MIHAD's success would not show that the brain works with its proposed units. Simulation reduces the body and the social environment, and dividing records into memory types does not establish matching biological stores.
 
-The gate may slow learning more than it protects: high thresholds reject correct knowledge, checkers can err or be gamed, and many open language claims have no independent checker. Storage without verification may suffice in an environment without misleading input, and a simple memory may serve the purpose. The coding-agent results add three limits. They come from one main repository, and all but the executable-review experiment have one run per cell, so a difference of one task or of 10–15% in cost may be noise; even with three repetitions, a gain of three successes in 42 has one clearly causal case. The blind judge is a language model not yet calibrated against human ratings. And the generalized tool has been tested live only on small sample projects.
+The gate may slow learning more than it protects: high thresholds reject correct knowledge, checkers can err or be gamed, and many open language claims have no independent checker. Storage without verification may suffice in an environment without misleading input, and a simple memory may serve the purpose. The coding-agent results add three limits. Most come from one main repository, and the experiments before the executable review have one run per cell, so a difference of one task or of 10–15% in cost may be noise. Even with three repetitions, a gain of three successes in 42 has one clearly causal case. The later evaluations on boltons and bidict used one repository each, and the boltons task titles had been seen before engine5's design (engine5 was therefore evaluated on bidict, blindly). The blind judge is a language model not yet calibrated against human ratings. And the generalized tool has been tested live only on small sample projects.
 
-Implementation errors are separated from weak hypotheses. If retrieval breaks or test data leak, the result cannot judge the mechanism. If the implementation is correct, the comparison is sound and the pre-specified benefit is ruled out, the component is simplified or dropped within the scope tested. This is how DARA, the generic edge-case checklist and knowledge transfer through notes are treated here.
+Implementation errors are separated from weak hypotheses. If retrieval breaks or test data leak, the result cannot judge the mechanism. If the implementation is correct, the comparison is sound and the pre-specified benefit is ruled out, the component is simplified or dropped within the scope tested. This is how DARA, the generic edge-case checklist, knowledge transfer through notes, the property checks, the contract ontology and the learned project rules are treated here.
 
 ## 16 Implementation and Reproducibility
 
@@ -722,9 +795,11 @@ The reproduction package includes the environment description and random seeds, 
 
 The value of the adoption gate depends on the kind of knowledge. For checkable code knowledge, a strong agent checks for itself, so memory adds no success and raises cost, and knowledge about the code did not transfer to different later tasks, whether kept as verified memory or as project notes. For knowledge the agent cannot discover, such as user preferences, the gate was the condition for an effect: a trustworthy source in the user's verbatim words, a trust label that makes the agent follow the item, and a scope rule that keeps a one-off instruction from becoming a standing one. In the independence test the benefit came from tracking origins, not from the form of the gate.
 
-What transferred between different tasks was operational experience about the environment and its tools, learned from the agent's own sessions and promoted only when an A/B test on practice tasks showed that it saved effort without losing success. With it a weaker model kept its success at lower cost and unchanged quality. Generic advice added in every session did not help and lowered quality. Specific facts did better: an executable review that runs the agent's change and reports what it observed removed formatting regressions across three repetitions and added three successes, one of them linked to a finding. That one passes the hidden tests of a floating-point task every earlier variant had failed, although property tests show it is only partly correct. The task whose intent is unstated was still never solved.
+What transferred between different tasks was operational experience about the environment and its tools, learned from the agent's own sessions and promoted only when an A/B test on practice tasks showed that it saved effort without losing success. With it a weaker model kept its success at lower cost and unchanged quality. Generic advice added in every session did not help and lowered quality. Specific facts did better: an executable review that runs the agent's change and reports what it observed removed formatting regressions across three repetitions and added three successes, one of them linked to a finding. That one passes the hidden tests of a floating-point task every earlier variant had failed, although property tests show it is only partly correct.
 
-The next steps are to run the engine on a second repository and calibrate the judge with human ratings. They also include closing the loop on untested-line findings (re-running the mutant against the agent's new test and giving an input that reaches the line), and checks of properties of the changed function, which in a post-hoc analysis detect the errors of most failed runs within a second. Finally, the tool should be tested on a real project, where the question is whether the engine learns from the user's own corrections something that saves the user work. The conclusions remain limited to the tasks and models tested, and this version does not establish the broader research goal.
+Stronger executable checks did not carry over to repositories the design had not seen. Property templates, a contract ontology and rules learned from the project's own history were all precise, with no false alarms on passing sessions in any repository. But they detected almost none of the failures there. Two agent experiments and two offline measurements agree: the weaker model's remaining failures are too varied and too specific to the project for generic or historical rules to anticipate. In the cases examined most closely, those failures came from misreading what the task wanted.
+
+The next step therefore moves from checking the change to understanding the task: detecting when a task is underspecified, and settling it with a concrete question or with distinguishing inputs before the agent writes code. Every new mechanism should be evaluated on a repository its design has not seen. The judge still needs calibration with human ratings, and the tool needs testing on a real project. The conclusions remain limited to the tasks and models tested, and this version does not establish the broader research goal. The conclusions remain limited to the tasks and models tested, and this version does not establish the broader research goal.
 
 ## References
 

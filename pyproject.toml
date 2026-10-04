@@ -26,7 +26,7 @@ mihad-memory = "mihad_memory.cli:main"
 mihad-mcp = "mihad_memory.mcp_server:main"
 
 [project.urls]
-Paper = "https://github.com/abdullahbalabel/mihad/blob/main/paper/MIHAD_Research_Paper_EN_v1.9.md"
+Paper = "https://github.com/abdullahbalabel/mihad/blob/main/paper/MIHAD_Research_Paper_EN_v2.0.md"
 
 [tool.setuptools.packages.find]
 include = ["mihad_memory*"]

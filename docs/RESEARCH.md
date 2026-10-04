@@ -1,6 +1,6 @@
 # Research summary
 
-The full paper is [paper/MIHAD_Research_Paper_EN_v1.9.md](../paper/MIHAD_Research_Paper_EN_v1.9.md); a Word version is in the same folder.
+The full paper is [paper/MIHAD_Research_Paper_EN_v2.0.md](../paper/MIHAD_Research_Paper_EN_v2.0.md); a Word version is in the same folder.
 
 ## The question
 
