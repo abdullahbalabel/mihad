@@ -1,6 +1,6 @@
 # Capabilities
 
-Each part below says what it does, how it decides what to trust, and what the experiments showed about it. Numbers come from the research paper ([paper/](../paper/MIHAD_Research_Paper_EN_v2.0.md)); all are exploratory, with one run per cell except the executable-checks experiment (three repetitions).
+Each part below says what it does, how it decides what to trust, and what the experiments showed about it. Numbers come from the research paper ([paper/](../paper/MIHAD_Research_Paper_EN_v2.1.md)); all are exploratory, with one run per cell except the executable-checks experiment (three repetitions).
 
 ## 1. Verified memory (MCP server)
 
@@ -109,6 +109,22 @@ Command sequences that past sessions repeated by hand are compiled into two skil
 ## 10. Competence record
 
 The engine keeps a record per function family (novice, competent, mastered), from attempts, successes and cost, and a record of tool competence per model. Scaffolding fades as competence grows.
+
+## The conscience (optional)
+
+A stronger model that speaks up when the agent keeps making mistakes, like a teacher who steps in when a student
+repeats errors, not at every line:
+
+- **When:** after two mistakes since its last word (a failed command or tool call, or the agent's own check printing a
+  mismatch). The same mistake twice means stuck on a wrong idea; different ones may mean a wrong reading of the task.
+- **What it reads:** the task, the change so far, and the last command with its output, about 5,000 tokens, never the
+  whole transcript.
+- **How:** in the background; its note reaches the agent with the next tool result. At most `conscience_max` (10) times
+  per session.
+- **Turn it on:** set `conscience_model` in `.mihad/project.json` to a model stronger than the agent's, e.g.
+  `"anthropic/claude-sonnet-5-5"`. It calls that model, so it costs money; off by default.
+- **Evidence (bidict, Haiku as the agent, 63 runs per arm):** no second model 37/63; OMP's advisor reviewing every turn
+  45/63 at 3.5x the cost; the conscience **44/63 at about 1.3x** the cost; the conscience with Haiku itself 38/63 (no gain).
 
 ## Optional parts (off by default)
 

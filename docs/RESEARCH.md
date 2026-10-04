@@ -1,6 +1,6 @@
 # Research summary
 
-The full paper is [paper/MIHAD_Research_Paper_EN_v2.0.md](../paper/MIHAD_Research_Paper_EN_v2.0.md); a Word version is in the same folder.
+The full paper is [paper/MIHAD_Research_Paper_EN_v2.1.md](../paper/MIHAD_Research_Paper_EN_v2.1.md); a Word version is in the same folder.
 
 ## The question
 
@@ -16,6 +16,9 @@ Can a coding agent be given memory and experience that make it better over time,
 6. **Observed facts help.** Executable review checks run the agent's change: each added line is mutated to see whether the tests notice, and formatting, lint and preferences are checked against the starting commit. Over three repetitions (42 runs per arm) they raised success to 35/42 against 32/42 and cut format regressions from 10 to 0, for 2% more cost. The judge's score rose (3.98 vs 3.74) only because of the extra successes; among passing runs the arms differ by at most 0.11. Only one extra success is linked to a finding, and property tests show it is only partly correct, so the firm gain is formatting.
 
 7. **Stronger checks do not generalize.** Property templates, a contract ontology and rules learned from the project's history were tested on two repositories the design had not seen (bidict with blindly chosen tasks). They raised no false alarms, but caught almost none of the failures there (0 of 47 on bidict) and did not raise success, at 11–48% more cost. On the data they were designed from they caught 23 of 24, which is why every mechanism is now evaluated on an unseen repository. They stay off.
+
+8. **A stronger second model helps; a well-timed one is affordable.** With Haiku as the agent, OMP's built-in advisor (Sonnet 5.5 reviewing every turn) raised success from 37 to 45 of 63 at 3.5 times the cost. The **conscience**, which speaks up only after repeated mistakes and reads a short context, reached 44 of 63 at about 37% of the advisor's cost. With Haiku itself as the conscience there was no gain (38 of 63): the second voice must know more than the agent.
+9. **Task text does not predict failure.** Local decision models (Qwen3-4B, OpenDecider) could not tell from a task's description which tasks the agent would fail (best AUC 0.60).
 
 ## Limits
 

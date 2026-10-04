@@ -101,6 +101,8 @@ A cycle needs code with conditions or arithmetic to mutate. Code that only chain
 | `memory_db` | `.mihad/memory.db` | The memory database |
 | `user_log` | `.mihad/user_messages.txt` | Your messages: the evidence for preferences |
 | `checks` | `true` | Executable checks at review: untested lines, formatting and lint, checkable preferences, single-pass iterators. Projects installed with 1.1 have `false` written in their config; set it to `true` |
+| `conscience_model` | none | A model stronger than the agent's (e.g. `anthropic/claude-sonnet-5-5`) turns on the conscience: it speaks up after repeated mistakes. Calls a paid model |
+| `conscience_max` | `10` | At most this many conscience notes per session |
 | `edges` | `false` | Add a generic edge-case checklist to the review. Off because it added cost without raising success |
 | `advisor` | `false` | Let a stuck session consult a stronger model once |
 | `advisor_model` | `anthropic/claude-sonnet-5` | The advisor's model |

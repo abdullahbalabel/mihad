@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.3.0 — 2026-10-05
+
+- **The conscience (optional).** A stronger model that speaks up after repeated mistakes, with a short context and in the
+  background (`conscience_model`, `conscience_max`). Experiment (bidict, 63 runs per arm): 44/63 vs 37/63 without it, at
+  about 37% of the cost of an always-on advisor that reached 45/63.
+- **Review delivery fix (OMP).** OMP gives an extension handler 30 seconds; the executable review takes minutes, and a
+  late review often never reached the agent. The review now runs on its own and starts a new turn when ready.
+- **`test_python`.** The project's tests run with the project's own interpreter (its `.venv`, or the setting).
+- **Review fixes:** no mutants of docstring lines or of `return None/False/NotImplemented`; a message when the agent
+  finishes without any change; an alert when the agent's own check printed a mismatch.
+- **Off by default, kept for research:** property checks with a contract ontology, task-behaviour metadata, closed-loop
+  review rounds, rules learned from the project's history. Precise, but they caught almost no failures on unseen
+  repositories.
+- **Paper v2.1.**
+
 ## 1.2.0 — 2026-10-03
 
 - **Executable review checks, on by default** (`checks: true`). Before the agent finishes, its change is run, not just read:
