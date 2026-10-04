@@ -199,6 +199,32 @@ class ReviewFindingsTests(unittest.TestCase):
             self.assertTrue(inspect)
 
 
+class SubclassTests(unittest.TestCase):
+    def test_changed_base_class_is_checked_through_its_subclass(self):
+        import json
+        import os
+        import subprocess
+        import tempfile
+        mod = ("class Base:\n"
+               "    def __init__(self, items):\n        self.items = list(items)\n"
+               "    def __iter__(self):\n        return iter(self.items)\n"
+               "    def __len__(self):\n        return len(self.items) + 1\n"   # the bug, in the base class
+               "class Child(Base):\n    pass\n")
+        test = "import m\nc = m.Child([1, 2])\nassert list(c) == [1, 2]\nprint('OK')\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "m.py").write_text(mod, encoding="utf-8")
+            Path(tmp, "t.py").write_text(test, encoding="utf-8")
+            Path(tmp, "sitecustomize.py").write_text(
+                "from mihad_memory.experience import propcheck as _p\n_p.install()\n", encoding="utf-8")
+            env = dict(os.environ, PYTHONPATH=os.pathsep.join([tmp, str(Path(__file__).resolve().parents[1])]),
+                       MIHAD_PROP_TARGETS=json.dumps([["m", "Base"]]),
+                       MIHAD_PROP_TEMPLATES=json.dumps(sorted(ALL)), MIHAD_PROP_OUT=tmp)
+            res = subprocess.run([sys.executable, "t.py"], cwd=tmp, env=env, capture_output=True, text=True)
+            self.assertIn("OK", res.stdout, res.stderr)
+            out = json.loads(Path(tmp, "m.Base.json").read_text(encoding="utf-8"))
+            self.assertTrue(any(f["template"] == "len" and "Child" in f["detail"] for f in out["findings"]), out)
+
+
 class BehaviourTests(unittest.TestCase):
     def test_task_behaviours(self):
         from mihad_memory.experience import probes

@@ -452,6 +452,9 @@ def prop_run(ws, root, targets, templates, ids, out, seeds_from=None):
         env = dict(os.environ, MIHAD_PROP_TARGETS=json.dumps([[m, n] for m, n, _ in targets]),
                    MIHAD_PROP_TEMPLATES=json.dumps(templates), MIHAD_PROP_OUT=str(out),
                    MIHAD_PROP_SEEDS_FROM=str(seeds_from or ""), PYTHONHASHSEED="0",
+                   # The checks live in this test process: tests spread over pytest-xdist workers
+                   # (-n auto) would run elsewhere and leave nothing to check.
+                   PYTEST_XDIST_AUTO_NUM_WORKERS="0",
                    PYTHONPATH=os.pathsep.join([tmp, str(root), str(ws), str(project.MIHAD_ROOT),
                                                os.environ.get("PYTHONPATH", "")]))
         run_tests(ws, ids, env=env)

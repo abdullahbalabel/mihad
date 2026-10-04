@@ -139,7 +139,7 @@ def check_reference(cls, name, seeds, rng, templates):
     if not ref:
         return []
     rname, rfun = ref
-    arg_counts = sorted({len(a) for a, k in seeds if not k and 1 <= len(a) <= 3}) or [3]
+    arg_counts = sorted({len(sd[0]) for sd in seeds if not sd[1] and 1 <= len(sd[0]) <= 3}) or [3]
     pool = []
     for _ in range(300):
         n = rng.choice(arg_counts)
@@ -181,7 +181,7 @@ def check_single_pass(fn, name, seeds, templates):
     """A function that opens an argument iterable twice: works with lists, fails with streams."""
     if "single_pass" not in templates:
         return []
-    for args, kwargs in seeds:
+    for args, kwargs, *_ in seeds:
         if not all(isinstance(a, (list, tuple)) or not _iterable_arg(a) for a in args):
             continue  # seed arguments that are already one-shot cannot be replayed safely
         idx = [i for i, a in enumerate(args) if isinstance(a, (list, tuple))]
@@ -221,17 +221,18 @@ class Target:
         if replay is not None:  # the run on the starting commit replays exactly the seeds of the run on the change
             self.seeds = replay
 
-    def add_seed(self, args, kwargs):
+    def add_seed(self, args, kwargs, cls=None):
         # Only calls made by the tests count: the library calling itself (e.g. type(self)(...) inside a method)
         # depends on the code under test, so the two runs would see different seeds.
         if self.done or self.replayed or len(self.seeds) >= SEEDS or _caller_module(3) == self.module:
             return
-        key = tuple((type(a).__name__, (a > 0) - (a < 0) if _num(a) else None) for a in args) + tuple(sorted(kwargs))
+        key = (cls.__name__ if cls else "",) + tuple((type(a).__name__, (a > 0) - (a < 0) if _num(a) else None)
+                                                     for a in args) + tuple(sorted(kwargs))
         if key in self.keys:
             return
         self.keys.add(key)
         # Copies: the function under test may consume or change its arguments.
-        self.seeds.append((tuple(list(a) if isinstance(a, list) else a for a in args), dict(kwargs)))
+        self.seeds.append((tuple(list(a) if isinstance(a, list) else a for a in args), dict(kwargs), cls))
 
     def add_live(self, obj):
         if self.done or len(self.live) >= 30 or _caller_module(3) == self.module:
@@ -263,23 +264,24 @@ class Target:
         # Bounded by count, not time, and the same seeds on both runs: the run on the starting commit tries
         # exactly the same calls.
         per_seed = max(20, VARIANTS * 2 // max(1, len(self.seeds)))
-        for args, kwargs in self.seeds:
+        for args, kwargs, *rest in self.seeds:
+            ctor = (rest[0] if rest and rest[0] is not None else self.obj)
             for v in ([args] + variations(args, self.rng))[:per_seed]:
                 if len(made) > 600:
                     break
                 try:
-                    x = self.obj(*v, **kwargs)
+                    x = ctor(*v, **kwargs)
                 except Exception:
                     continue
                 if not is_class and inspect.isgenerator(x):
                     continue
-                label = _call_text(self.name, v, kwargs)
+                label = _call_text(ctor.__name__ if is_class else self.name, v, kwargs)
                 made.append((label, x))
                 add(contracts.check(x, label, self.templates, others=made[-6:-1]))
         live = [r() for r in self.live]
         live = [x for x in live if x is not None]
         for i, x in enumerate(live):
-            label = f"{self.name} instance #{i + 1} as a test left it ({contracts._short(x, 50)})"
+            label = f"{type(x).__name__} instance #{i + 1} as a test left it ({contracts._short(x, 50)})"
             others = [(f"{self.name} instance #{j + 1}", o) for j, o in enumerate(live) if o is not x][:4] + made[:4]
             add(contracts.check(x, label, self.templates, others=others))
         add(contracts.values([(lb, x) for lb, x in made if "value" in contracts.kinds(x)][:200], self.templates))
@@ -344,8 +346,11 @@ def install():
                 @functools.wraps(orig_init)
                 def init(self, *a, __orig=orig_init, __t=t, __cls=obj, **k):
                     __orig(self, *a, **k)
-                    if type(self) is __cls:
-                        __t.add_seed(a, k)
+                    # The changed class is often a base class and the tests build its subclasses; their
+                    # objects run the changed code too. Only the outermost __init__ call records (a subclass
+                    # __init__ calling super().__init__ with other arguments would give wrong seeds).
+                    if isinstance(self, __cls) and type(self).__init__ is __cls.__init__:
+                        __t.add_seed(a, k, type(self))
                         __t.add_live(self)
                 try:
                     obj.__init__ = init
@@ -356,8 +361,8 @@ def install():
 
                 def new(cls, *a, __orig=orig_new, __t=t, __cls=obj, **k):
                     inst = __orig(cls, *a, **k)
-                    if cls is __cls:
-                        __t.add_seed(a, k)
+                    if issubclass(cls, __cls) and cls.__new__ is __cls.__new__:
+                        __t.add_seed(a, k, cls)
                         __t.add_live(inst)
                     return inst
                 try:
