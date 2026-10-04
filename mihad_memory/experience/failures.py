@@ -155,11 +155,11 @@ def detect(engine, event, state_path, cwd=None):
             advice = advisor.advise(engine, cwd, advisor.task_text_for(state_path), st, reason)
             if advice:
                 out.append(advice)
-    # The selective advisor (watch.py, on when MIHAD_WATCH_MODEL is set): maybe start a background consultation,
+    # The conscience (conscience.py, on when a conscience model is configured): maybe start a background consultation,
     # and hand over the notes earlier ones produced.
-    from . import watch
-    watch.maybe_consult(st, event, state_path, cwd)
-    note = watch.pending_notes(state_path)
+    from . import conscience
+    conscience.maybe_consult(st, event, state_path, cwd)
+    note = conscience.pending_notes(state_path)
     if note:
         out.append(note)
     Path(state_path).parent.mkdir(parents=True, exist_ok=True)

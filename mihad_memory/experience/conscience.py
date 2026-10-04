@@ -1,4 +1,9 @@
-"""A selective advisor: a stronger model consulted only at the moments that matter, with a short context.
+"""The conscience: a stronger model that speaks up when the agent keeps making mistakes, with a short context.
+
+Named by the user: like a conscience, it is not asked; it reproaches the agent when it errs, again if the error
+repeats, and says what to do instead. In experiment "watch" (bidict, Haiku as the agent) it kept the gain of
+OMP's always-on advisor (44/63 against 45/63; 37/63 without either) at about 37% of its cost; with Haiku itself as
+the conscience there was no gain (38/63): it needs a stronger model than the agent.
 
 OMP's own advisor re-reads the whole session after every turn (about 81 reviews of ~62k tokens per session in
 experiment "advisor"); its value came from a few notes, mostly right after the agent ran something and saw a
@@ -18,8 +23,8 @@ from pathlib import Path
 
 from .common import git
 
-# At most this many consultations per session (MIHAD_WATCH_MAX overrides).
-MAX_CONSULTS = int(os.environ.get("MIHAD_WATCH_MAX") or 10)
+# At most this many consultations per session (MIHAD_CONSCIENCE_MAX, or the config's conscience_max, overrides).
+MAX_CONSULTS = int(os.environ.get("MIHAD_CONSCIENCE_MAX") or os.environ.get("MIHAD_WATCH_MAX") or 10)
 NOTE_PROMPT = """\
 You are a senior engineer advising a weaker coding agent that is fixing a task in a Python project. You see the task,
 the agent's change so far, and what just happened ({reason}). Give at most two short, concrete corrections the
@@ -47,10 +52,10 @@ def should_consult(st, event, consults):
     # Like a teacher: step in when the student keeps making mistakes, not at every line. Two mistakes since the
     # last consultation; the same one twice means stuck on a wrong idea, different ones may mean a wrong reading
     # of the task. (Design: the user's.)
-    new = [m for m in st.get("mistakes", []) if m["step"] > st.get("watch_seen_step", 0)]
+    new = [m for m in st.get("mistakes", []) if m["step"] > st.get("conscience_seen_step", 0)]
     if len(new) < 2:
         return None
-    st["watch_seen_step"] = new[-1]["step"]
+    st["conscience_seen_step"] = new[-1]["step"]
     if new[-1]["sig"] == new[-2]["sig"]:
         return f"the agent repeated the same mistake: {new[-1]['sig']}"
     return "the agent made several different mistakes: " + "; ".join(m["sig"] for m in new[-3:])
@@ -92,19 +97,29 @@ def consult(ws, state_path, model, reason, event_file):
 
 def maybe_consult(st, event, state_path, ws):
     """Called by failures.detect after each tool call: start a background consultation when should_consult says so."""
-    model = os.environ.get("MIHAD_WATCH_MODEL")
-    if not model or not ws:
+    if not ws:
         return
-    consults = st.get("watch_consults", 0)
-    if consults >= MAX_CONSULTS:
+    model = os.environ.get("MIHAD_CONSCIENCE_MODEL") or os.environ.get("MIHAD_WATCH_MODEL")
+    cap = MAX_CONSULTS
+    if not model and not os.environ.get("MIHAD_EXPERIENCE_DIR"):  # project mode: the config turns it on
+        try:
+            from .. import project
+            cfg = project.load(ws)
+            model, cap = cfg.get("conscience_model"), int(cfg.get("conscience_max") or MAX_CONSULTS)
+        except Exception:
+            model = None
+    if not model:
+        return
+    consults = st.get("conscience_consults", 0)
+    if consults >= cap:
         return
     reason = should_consult(st, event, consults)
     if not reason:
         return
-    st["watch_consults"] = consults + 1
-    event_file = f"{state_path}.watch-event-{consults + 1}.json"
+    st["conscience_consults"] = consults + 1
+    event_file = f"{state_path}.conscience-event-{consults + 1}.json"
     Path(event_file).write_text(json.dumps(event), encoding="utf-8")
-    subprocess.Popen([sys.executable, "-m", "mihad_memory.experience", "watch-consult", "--cwd", str(ws),
+    subprocess.Popen([sys.executable, "-m", "mihad_memory.experience", "conscience-consult", "--cwd", str(ws),
                       "--state", str(state_path), "--model", model, "--reason", reason, "--event-file", event_file],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
                      creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
@@ -123,4 +138,4 @@ def pending_notes(state_path):
     notes = [r["note"] for r in new if r.get("note")]
     if not notes:
         return ""
-    return "[advisor] A senior engineer reviewed what you just did:\n" + "\n\n".join(notes)
+    return "[conscience] A senior engineer reviewed what you just did:\n" + "\n\n".join(notes)

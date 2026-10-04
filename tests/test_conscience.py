@@ -1,4 +1,4 @@
-"""The selective advisor's rule: like a teacher, step in after two mistakes since the last time, and tell the
+"""The conscience's rule: like a teacher, step in after two mistakes since the last time, and tell the
 advisor whether it was the same mistake again or different ones."""
 import json
 import sys
@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from mihad_memory.experience import failures, watch  # noqa: E402
+from mihad_memory.experience import conscience as watch, failures  # noqa: E402
 
 
 class Eng:

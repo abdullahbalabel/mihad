@@ -110,8 +110,11 @@ def _defaults(root):
             # Executable review checks (probes.py). On: in experiment engine3 they removed format
             # regressions (0 vs 10 in 42 runs) and raised the judge's score, for 2% more cost.
             "checks": True,
-            # Property checks of changed functions and closed-loop review rounds: off until measured (engine4).
+            # Property checks of changed functions and closed-loop review rounds: off (engine4, engine5).
             "properties": False,
+            # The conscience: a stronger model that speaks up after repeated mistakes (conscience.py). Off until a
+            # model is set, since it calls a paid model; experiment "watch": +7/63 at about 30% more cost.
+            "conscience_model": None, "conscience_max": 10,
             "dream": {"agent": "omp", "auto_after_sessions": 0, "tasks_per_cycle": 4,
                       "model": "anthropic/claude-haiku-4-5",
                       "max_time": "15m", "visible": True}}
