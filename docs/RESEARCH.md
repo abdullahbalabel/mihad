@@ -15,6 +15,8 @@ Can a coding agent be given memory and experience that make it better over time,
 5. **Generic advice is noise.** An edge-case checklist plus an advisor gave 10/14, cost more and lowered quality.
 6. **Observed facts help.** Executable review checks run the agent's change: each added line is mutated to see whether the tests notice, and formatting, lint and preferences are checked against the starting commit. Over three repetitions (42 runs per arm) they raised success to 35/42 against 32/42 and cut format regressions from 10 to 0, for 2% more cost. The judge's score rose (3.98 vs 3.74) only because of the extra successes; among passing runs the arms differ by at most 0.11. Only one extra success is linked to a finding, and property tests show it is only partly correct, so the firm gain is formatting.
 
+7. **Stronger checks do not generalize.** Property templates, a contract ontology and rules learned from the project's history were tested on two repositories the design had not seen (bidict with blindly chosen tasks). They raised no false alarms, but caught almost none of the failures there (0 of 47 on bidict) and did not raise success, at 11–48% more cost. On the data they were designed from they caught 23 of 24, which is why every mechanism is now evaluated on an unseen repository. They stay off.
+
 ## Limits
 
 - One main repository (more-itertools), and one run per cell except the executable-checks experiment (three repetitions). A difference of one task, or of 10–15% in cost, may be noise.
