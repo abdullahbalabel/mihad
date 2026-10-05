@@ -27,12 +27,11 @@ MAX_QUESTIONS = int(os.environ.get("MIHAD_QUESTION_MAX") or 2)
 CHEAP_MODEL = os.environ.get("MIHAD_QUESTION_MODEL") or "anthropic/claude-haiku-4-5"
 
 GOAL_PROMPT = """\
-A developer received this task for a Python library. Before any code is read, say whether the task can be
-understood in two materially different ways (different behaviour the change must produce, different scope, or a
-different case the task may or may not cover). If it can, write the two readings as:
-A: <one or two sentences>
-B: <one or two sentences>
-If every competent developer would read it the same way, reply exactly SAME. No other text.
+A developer received only this task for a Python library and must implement it without asking anyone. List the
+decisions the task leaves open that would change the code or its tests (which cases are covered, what is raised
+or returned, where a check happens, what must stay unchanged). Write each as one short question, numbered, one
+per line, at most three. If the task settles everything a competent developer needs, reply exactly SAME. No
+other text.
 
 TASK:
 {task}
@@ -93,20 +92,39 @@ def enabled(ws=None):
 # ---------------------------------------------------------------- goal doubt (at the start)
 
 def goal_doubt(task_text, model=CHEAP_MODEL):
-    """Two readings of the task if it can be read two ways, else ''."""
+    """The decisions the task leaves open, as questions (at most three), else []."""
     out = ask_text(model, GOAL_PROMPT.format(task=task_text[:3000]), timeout=120).strip()
-    if not out or out.upper().startswith("SAME") or "B:" not in out:
-        return ""
-    return out[:800]
+    if not out or out.upper().startswith("SAME"):
+        return []
+    qs = [re.sub(r"^\s*(\d+[.)]|[-*])\s*", "", l).strip() for l in out.splitlines()]
+    return [q for q in qs if q.endswith("?") and len(q) > 15][:3]
 
 
-def goal_block(task_text):
-    readings = goal_doubt(task_text)
-    if not readings:
+def goal_block(task_text, ws=None, state_path=None):
+    """At the start: the open decisions, each answered from the project where it can be; the rest left to the
+    agent to settle from the code or to ask the user (ask_user) before it changes behaviour."""
+    questions = goal_doubt(task_text)
+    if not questions:
         return ""
-    return ("\n[question] This task can be read in two ways:\n" + readings +
-            "\nIf the repository does not settle which is meant, ask the user once with the ask_user tool "
-            "before you change code. Then follow the answer.\n")
+    settled, open_ = [], []
+    for q in questions:
+        a = project_answer(ws, q) if ws else ""
+        if a:
+            settled.append(f"- {q} -> {a}")
+            if state_path:
+                with open(_answers_path(state_path), "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps({"who": "brief", "question": q[:500], "answer": a, "source": "project"},
+                                        ensure_ascii=False) + "\n")
+        else:
+            open_.append(f"- {q}")
+    text = "\n[question] The task leaves these decisions open."
+    if settled:
+        text += "\nThe project's own files settle these:\n" + "\n".join(settled)
+    if open_:
+        text += ("\nThese are not settled by the project's files:\n" + "\n".join(open_) +
+                 "\nSettle them from the code if it clearly does; otherwise ask the user with the ask_user tool "
+                 "(at most two questions) before you change behaviour, and follow the answer.")
+    return text + "\n"
 
 
 # ---------------------------------------------------------------- answering
@@ -175,7 +193,7 @@ def ask(ws, question, state_path, who="agent"):
     for rec in past:
         if rec["question"].lower() == question.lower():
             return {"answer": rec["answer"], "source": "memory"}
-    asked = sum(1 for r in past if r["source"] in ("project", "user"))
+    asked = sum(1 for r in past if r["source"] == "user")  # only the user's attention is rationed
     if asked >= MAX_QUESTIONS:
         return {"answer": "No more questions are available in this session; use your best judgment and state "
                           "the assumption in your final message.", "source": "cap"}
@@ -226,4 +244,4 @@ def assumption_check(ws, task_text, state_path, model=CHEAP_MODEL):
     if res["source"] in ("cap", "none"):
         return ""
     return (f"[question] Your tests assume something the task did not state, so the user was asked: \"{q}\" "
-            f"The answer ({res['source']}): {res['answer']} Fix what applies, then finish.")
+            f"The answer ({res['source']}): {res['answer']} Make your change and tests follow it.")

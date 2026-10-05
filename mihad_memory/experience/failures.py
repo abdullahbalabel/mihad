@@ -160,6 +160,16 @@ def detect(engine, event, state_path, cwd=None):
         nudge = question.detail_block(st)
         if nudge:
             out.append(nudge)
+        # A test the agent just wrote is where an assumption about the task becomes concrete: check it now,
+        # not only at the finish (a session that runs out of time never reaches the review).
+        if tool in ("edit", "write") and not is_error and str(args.get("path", "")).replace("\\", "/").startswith("tests/") \
+                and not st.get("assumption_checked"):
+            st["assumption_checked"] = True
+            task_file = Path(f"{state_path}.task.txt")
+            asked = question.assumption_check(cwd, task_file.read_text(encoding="utf-8"), state_path) \
+                if task_file.exists() else ""
+            if asked:
+                out.append(asked)
     # The conscience (conscience.py, on when a conscience model is configured): maybe start a background consultation,
     # and hand over the notes earlier ones produced.
     from . import conscience

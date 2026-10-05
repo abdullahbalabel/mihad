@@ -53,13 +53,38 @@ class QuestionTests(unittest.TestCase):
     def test_goal_doubt_same_is_silent(self):
         self.fake(["SAME"])
         self.assertEqual(question.goal_block("Fix the bug."), "")
-        self.fake(["A: raise\nB: return None"])
-        self.assertIn("two ways", question.goal_block("Fix the bug."))
+        self.fake(["1. Should it raise or return None?\n2. Does it cover the inverse too?"])
+        block = question.goal_block("Fix the bug.")  # no workspace: nothing settled by the project
+        self.assertIn("decisions open", block)
+        self.assertIn("inverse", block)
+        self.assertIn("ask_user", block)
 
     def test_detail_nudge_once(self):
         st = {"step": 5, "self_check_fail": {"step": 5}}
         self.assertIn("ask the user", question.detail_block(st))
         self.assertEqual(question.detail_block(st), "")
+
+    def test_writing_a_test_triggers_the_assumption_check_once(self):
+        from mihad_memory.experience import failures
+
+        class Eng:
+            def active_lessons(self): return []
+            def fired(self, *a): pass
+            def log(self, *a): pass
+        os.environ["MIHAD_QUESTION"] = "1"
+        Path(f"{self.state}.task.txt").write_text("Raise on mutation during iteration.", encoding="utf-8")
+        seen = []
+        old = question.assumption_check
+        question.assumption_check = lambda ws, task, state, model=None: seen.append(task) or "[question] asked"
+        try:
+            ev = {"toolName": "write", "input": {"path": "tests/test_x.py"}, "isError": False, "text": "ok"}
+            self.assertIn("[question] asked", failures.detect(Eng(), ev, self.state, self.tmp.name))
+            self.assertEqual(failures.detect(Eng(), ev, self.state, self.tmp.name), "")  # once per session
+            ev2 = {"toolName": "write", "input": {"path": "bidict/_base.py"}, "isError": False, "text": "ok"}
+            self.assertEqual(failures.detect(Eng(), ev2, self.state, self.tmp.name), "")
+        finally:
+            question.assumption_check = old
+        self.assertEqual(len(seen), 1)
 
     def test_off_without_oracle_or_flag(self):
         os.environ["MIHAD_EXPERIENCE_DIR"] = self.tmp.name

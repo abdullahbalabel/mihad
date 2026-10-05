@@ -16,6 +16,7 @@ The engine directory comes from --dir, else MIHAD_EXPERIENCE_DIR, else .mihad/ex
 """
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -115,7 +116,7 @@ def main(argv=None):
             out += memory_block(a.cwd, text)
         from . import question
         if question.enabled(a.cwd):  # goal doubt: two readings of the task that disagree (question.py)
-            out += question.goal_block(text)
+            out += question.goal_block(text, a.cwd, os.environ.get("MIHAD_EXPERIENCE_STATE"))
         print(out)
     elif a.cmd == "detect":
         event = json.loads(Path(a.event_file).read_text(encoding="utf-8"))
