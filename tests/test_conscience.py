@@ -85,6 +85,24 @@ class WatchTests(unittest.TestCase):
         self.assertEqual(len(past), 1)
         self.assertIn("python -m black", past[0])
 
+    def test_final_review_once_and_only_when_on(self):
+        old_env, old_ask, old_git = dict(os.environ), watch.ask_text, watch.git
+        asked = []
+        watch.ask_text = lambda model, prompt, timeout=240: asked.append(prompt) or "1. Handle the empty case."
+        watch.git = lambda *a, **k: "+ x = 1"
+        try:
+            os.environ["MIHAD_EXPERIENCE_DIR"] = self.tmp.name
+            os.environ["MIHAD_CONSCIENCE_MODEL"] = "m"
+            os.environ.pop("MIHAD_CONSCIENCE_FINAL", None)
+            self.assertEqual(watch.final_review(self.tmp.name, self.state), "")  # off
+            os.environ["MIHAD_CONSCIENCE_FINAL"] = "1"
+            self.assertIn("empty case", watch.final_review(self.tmp.name, self.state))
+            self.assertEqual(watch.final_review(self.tmp.name, self.state), "")  # once per session
+            self.assertEqual(len(asked), 1)
+        finally:
+            os.environ.clear(); os.environ.update(old_env)
+            watch.ask_text, watch.git = old_ask, old_git
+
     def test_memory_block_holds_preferences(self):
         prefs = Path(self.tmp.name) / "prefs.txt"
         prefs.write_text("- Always add a changelog entry.\n", encoding="utf-8")

@@ -225,8 +225,10 @@ def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, 
         if props:
             found += _self_check(state_path)
         issues += [probes.describe(f) for f in found]
+    from . import conscience
+    final = conscience.final_review(ws, state_path) if state_path else ""
     engine.fired("review", fired)
-    engine.log("review", {"round": 1, "issues": issues, "checks": found,
+    engine.log("review", {"round": 1, "issues": issues, "checks": found, "conscience_final": bool(final),
                           "seconds": round(time.time() - started, 1)})
     if state_path:
         Path(f"{state_path}.review.json").write_text(json.dumps({"round": 1, "checks": found}), encoding="utf-8")
@@ -238,4 +240,7 @@ def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, 
         text = ("[experience review] Before you finish, check these points from past work on this project:\n"
                 + "\n".join(f"- {i}" for i in issues)
                 + "\nFix what applies; if a point does not apply, say why in one line. Then finish.")
-    return {"issues": issues, "text": text}
+    if final:
+        text = (text + "\n\n" if text else "") + ("[conscience] A senior engineer read the task and your finished "
+                                                  "change:\n" + final + "\nFix what applies, then finish.")
+    return {"issues": issues + (["conscience: " + final[:200]] if final else []), "text": text}

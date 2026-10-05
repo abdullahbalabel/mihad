@@ -15,6 +15,10 @@ With memory on (conscience_memory, MIHAD_CONSCIENCE_MEMORY), it also reads the u
 hold the agent to them, and how the same errors were resolved in earlier sessions of the project (the episodes the
 experience engine recorded; MIHAD_CONSCIENCE_PAST names a file of them instead).
 
+With the final review on (conscience_final, MIHAD_CONSCIENCE_FINAL), it also reads the task and the change once
+when the agent says it is done, as a teacher reads the answer sheet before it is handed in: the failures that never
+raise an error (a misread task, a missed case) never wake it otherwise. Its note joins the review (review.py).
+
 It never blocks the agent: a consultation runs in a background process and writes its note to
 <state>.notes.jsonl; detect() hands pending notes to the agent with its next tool result.
 """
@@ -44,6 +48,18 @@ THE AGENT'S CHANGE SO FAR (git diff):
 WHAT JUST HAPPENED:
 {event}
 {memory}"""
+FINAL_PROMPT = """You are a senior engineer reviewing the work of a weaker coding agent that says it has finished a task in a Python
+project. Read the task and the agent's change. Does the change do what the task asks, for every case the task
+describes? If it is correct and complete, reply exactly NOTHING. Otherwise give at most two short, concrete
+corrections: what is wrong or missing and what to change, with file and line where possible. Do not comment on
+style, tests or documentation unless the task asks for them. Do not praise, do not give generic advice.
+
+TASK:
+{task}
+
+THE AGENT'S CHANGE (git diff):
+{diff}
+"""
 PREFS_BLOCK = """
 THE USER'S STANDING PREFERENCES (stated by the user; if the change breaks one, say so as one of your corrections):
 {prefs}
@@ -192,6 +208,36 @@ def maybe_consult(st, event, state_path, ws):
                       "--state", str(state_path), "--model", model, "--reason", reason, "--event-file", event_file],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
                      creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+
+
+def final_model(ws):
+    """The conscience model if its final review is on, else None."""
+    model = os.environ.get("MIHAD_CONSCIENCE_MODEL") or os.environ.get("MIHAD_WATCH_MODEL")
+    if os.environ.get("MIHAD_EXPERIENCE_DIR"):  # experiment mode: the environment decides
+        return model if model and os.environ.get("MIHAD_CONSCIENCE_FINAL") else None
+    try:
+        from .. import project
+        cfg = project.load(ws)
+    except Exception:
+        return None
+    return (model or cfg.get("conscience_model")) if cfg.get("conscience_final") else None
+
+
+def final_review(ws, state_path):
+    """One reading of the task and the finished change; returns a note for the agent ('' if none or off)."""
+    model = final_model(ws)
+    if not model or not state_path:
+        return ""
+    done = Path(f"{state_path}.final.json")
+    if done.exists():  # once per session: the answer sheet is read once
+        return ""
+    task_file = Path(f"{state_path}.task.txt")
+    task = task_file.read_text(encoding="utf-8") if task_file.exists() else ""
+    diff = git(ws, "diff", "HEAD", check=False)[:12000]
+    note = ask_text(model, FINAL_PROMPT.format(task=task[:3000], diff=diff))
+    note = "" if not note.strip() or note.strip().upper().startswith("NOTHING") else note.strip()[:1500]
+    done.write_text(json.dumps({"note": note}, ensure_ascii=False), encoding="utf-8")
+    return note
 
 
 def pending_notes(state_path):
