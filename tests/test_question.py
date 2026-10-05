@@ -86,6 +86,14 @@ class QuestionTests(unittest.TestCase):
             question.assumption_check = old
         self.assertEqual(len(seen), 1)
 
+    def test_start_block_is_delivered_once(self):
+        self.fake(["1. Should it raise or return None?"])
+        task = Path(self.tmp.name) / "task.txt"
+        task.write_text("Fix the bug.", encoding="utf-8")
+        question.start(self.tmp.name, self.state, str(task))
+        self.assertIn("decisions open", question.pending_start(self.state))
+        self.assertEqual(question.pending_start(self.state), "")
+
     def test_off_without_oracle_or_flag(self):
         os.environ["MIHAD_EXPERIENCE_DIR"] = self.tmp.name
         os.environ.pop("MIHAD_QUESTION", None)

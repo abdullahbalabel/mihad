@@ -156,8 +156,11 @@ def detect(engine, event, state_path, cwd=None):
             if advice:
                 out.append(advice)
     from . import question
-    if cwd and question.enabled(cwd):  # detail doubt: nudge the agent to ask once (question.py)
-        nudge = question.detail_block(st)
+    if cwd and question.enabled(cwd):  # the timely question (question.py)
+        start = question.pending_start(state_path)  # the open decisions, found in the background at the start
+        if start:
+            out.append(start)
+        nudge = question.detail_block(st)  # detail doubt: nudge the agent to ask once
         if nudge:
             out.append(nudge)
         # A test the agent just wrote is where an assumption about the task becomes concrete: check it now,

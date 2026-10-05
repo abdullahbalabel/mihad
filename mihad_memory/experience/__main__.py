@@ -70,6 +70,8 @@ def main(argv=None):
     p.add_argument("--props", action="store_true", help="also property checks, self-check failures, closed-loop rounds")
     p.add_argument("--recheck", action="store_true", help="round 2+: re-run what the previous round found")
     p.add_argument("--final", action="store_true", help="with --recheck: measure and log only, no further turn")
+    p = sub.add_parser("question-start"); p.add_argument("--cwd", required=True); p.add_argument("--state", required=True)
+    p.add_argument("--task-file", required=True)
     p = sub.add_parser("conscience-consult"); p.add_argument("--cwd", required=True); p.add_argument("--state", required=True)
     p.add_argument("--model", required=True); p.add_argument("--reason", required=True); p.add_argument("--event-file", required=True)
     p = sub.add_parser("skill"); p.add_argument("action", choices=["list", "run"]); p.add_argument("name", nargs="?")
@@ -115,9 +117,12 @@ def main(argv=None):
         if a.memory:
             out += memory_block(a.cwd, text)
         from . import question
-        if question.enabled(a.cwd):  # goal doubt: two readings of the task that disagree (question.py)
-            out += question.goal_block(text, a.cwd, os.environ.get("MIHAD_EXPERIENCE_STATE"))
+        if question.enabled(a.cwd):  # the open decisions, found in the background (OMP allows a handler 30 s)
+            question.start_background(a.cwd, os.environ.get("MIHAD_EXPERIENCE_STATE"), a.task_file)
         print(out)
+    elif a.cmd == "question-start":
+        from . import question
+        question.start(a.cwd, a.state, a.task_file)
     elif a.cmd == "detect":
         event = json.loads(Path(a.event_file).read_text(encoding="utf-8"))
         print(failures.detect(eng, event, a.state, a.cwd), end="")

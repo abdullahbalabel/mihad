@@ -127,6 +127,34 @@ def goal_block(task_text, ws=None, state_path=None):
     return text + "\n"
 
 
+def start_background(ws, state_path, task_file):
+    """Find the open decisions in a background process (about a minute of cheap model calls); detect() hands the
+    result to the agent with its next tool result. The brief itself must return within OMP's 30 s."""
+    if not state_path or not task_file:
+        return
+    import subprocess
+    import sys
+    subprocess.Popen([sys.executable, "-m", "mihad_memory.experience", "question-start", "--cwd", str(ws),
+                      "--state", str(state_path), "--task-file", str(task_file)],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
+                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+
+
+def start(ws, state_path, task_file):
+    """The background half of start_background: write the goal block to <state>.question-start.txt."""
+    task = Path(task_file).read_text(encoding="utf-8")
+    Path(f"{state_path}.question-start.txt").write_text(goal_block(task, ws, state_path), encoding="utf-8")
+
+
+def pending_start(state_path):
+    """The goal block once it is ready, delivered once ('' otherwise)."""
+    p, done = Path(f"{state_path}.question-start.txt"), Path(f"{state_path}.question-start.delivered")
+    if not p.exists() or done.exists():
+        return ""
+    done.write_text("1")
+    return p.read_text(encoding="utf-8").strip()
+
+
 # ---------------------------------------------------------------- answering
 
 def _identifiers(question):
