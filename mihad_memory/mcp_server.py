@@ -74,6 +74,16 @@ TOOLS = [
     },
 ]
 
+# Exposed only when MIHAD_ASK_USER is set (experiments: the user is simulated; see experience/question.py).
+ASK_USER_TOOL = {
+    "name": "ask_user",
+    "description": ("Ask the user one precise question when the task text leaves open what is required (which "
+                    "behaviour, which case, which exception). The answer may come from the project's own "
+                    "documentation or from the user. At most two questions per session; do not ask what the code "
+                    "or the task already settles."),
+    "inputSchema": {"type": "object", "properties": {"question": {"type": "string"}}, "required": ["question"]},
+}
+
 
 class Server:
     def __init__(self, memory):
@@ -81,6 +91,10 @@ class Server:
 
     def call(self, name, args):
         m = self.memory
+        if name == "ask_user":
+            from .experience import question
+            return question.ask(os.environ.get("MIHAD_PROJECT") or os.getcwd(), args.get("question", ""),
+                                os.environ.get("MIHAD_EXPERIENCE_STATE") or os.path.join(m.project, ".mihad", "question"))
         if name == "memory_recall":
             return m.recall(args["query"], int(args.get("k", 5)))
         if name == "memory_propose":
@@ -104,7 +118,7 @@ class Server:
         if method == "ping":
             return self._ok(mid, {})
         if method == "tools/list":
-            return self._ok(mid, {"tools": TOOLS})
+            return self._ok(mid, {"tools": TOOLS + ([ASK_USER_TOOL] if os.environ.get("MIHAD_ASK_USER") else [])})
         if method == "tools/call":
             params = msg.get("params") or {}
             name, args = params.get("name"), params.get("arguments") or {}

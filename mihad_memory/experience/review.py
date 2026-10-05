@@ -225,8 +225,15 @@ def review(engine, ws, tests_after_edit=None, cache_path=None, state_path=None, 
         if props:
             found += _self_check(state_path)
         issues += [probes.describe(f) for f in found]
-    from . import conscience
+    from . import conscience, question
     final = conscience.final_review(ws, state_path) if state_path else ""
+    if state_path and question.enabled(ws) and not Path(f"{state_path}.assumption").exists():
+        Path(f"{state_path}.assumption").write_text("1")  # once per session
+        task_text = Path(f"{state_path}.task.txt").read_text(encoding="utf-8") if \
+            Path(f"{state_path}.task.txt").exists() else ""
+        asked = question.assumption_check(ws, task_text, state_path) if task_text else ""
+        if asked:
+            final = (final + "\n\n" if final else "") + asked
     engine.fired("review", fired)
     engine.log("review", {"round": 1, "issues": issues, "checks": found, "conscience_final": bool(final),
                           "seconds": round(time.time() - started, 1)})

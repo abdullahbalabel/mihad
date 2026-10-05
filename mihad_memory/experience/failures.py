@@ -155,6 +155,11 @@ def detect(engine, event, state_path, cwd=None):
             advice = advisor.advise(engine, cwd, advisor.task_text_for(state_path), st, reason)
             if advice:
                 out.append(advice)
+    from . import question
+    if cwd and question.enabled(cwd):  # detail doubt: nudge the agent to ask once (question.py)
+        nudge = question.detail_block(st)
+        if nudge:
+            out.append(nudge)
     # The conscience (conscience.py, on when a conscience model is configured): maybe start a background consultation,
     # and hand over the notes earlier ones produced.
     from . import conscience

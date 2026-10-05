@@ -113,6 +113,9 @@ def main(argv=None):
         out = brief_mod.brief(eng, a.cwd, text, a.model)
         if a.memory:
             out += memory_block(a.cwd, text)
+        from . import question
+        if question.enabled(a.cwd):  # goal doubt: two readings of the task that disagree (question.py)
+            out += question.goal_block(text)
         print(out)
     elif a.cmd == "detect":
         event = json.loads(Path(a.event_file).read_text(encoding="utf-8"))
