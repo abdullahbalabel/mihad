@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.4 — 2026-10-05
+
+- **Paper v2.5.** A grading flaw on bidict disclosed (six tasks could not pass as graded; results restated on the
+  fifteen sound tasks), code quality of the strong agent with and without MIHAD, why escalating to a strong model
+  cannot pay between Haiku and Sonnet, and the results placed in the 2024–2026 literature.
+- **The timely question (`question`, off).** Doubt detected from the agent's behaviour (two readings of the task
+  that disagree at the start; a failed self-check mid-task; an assumption in its own tests before finishing),
+  answered from the project first, then the user, and remembered for the session. Under evaluation.
+
 ## 1.3.3 — 2026-10-05
 
 - **Paper v2.4.** Sonnet 5.5 as the agent with and without MIHAD: 51/63 against 50/63 at nearly the same cost. The

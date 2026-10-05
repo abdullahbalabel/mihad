@@ -1,4 +1,4 @@
-<!-- Generated from _work/manuscript_v2.4_en.md by _work/export_md_v2.4_en.py -->
+<!-- Generated from _work/manuscript_v2.5_en.md by _work/export_md_v2.5_en.py -->
 <!-- © 2026 Abdullah Mohammed Balabel. Non-commercial use only; see LICENSE. -->
 
 # Better Coding Agents Without Retraining the Model
@@ -7,7 +7,7 @@
 
 Abdullah Mohammed Balabel
 
-Research design and exploratory results — Version 2.4 — October 2026
+Research design and exploratory results — Version 2.5 — October 2026
 
 ## Abstract
 
@@ -17,7 +17,7 @@ Learning from experience carries a risk: storing a conclusion does not make it c
 
 Three results hold across the studies. First, admission by evidence type protects the memory: in the evidence-independence test the gate exceeded the strongest of four required baselines by 12.8 points (92.4% vs 79.6%), although it matched origin-level aggregation, a known treatment of source dependence; and on the coding agent, deliberately planted wrong items were never followed. Second, the clearest positive effect concerns knowledge an agent cannot recover from the code: once standing user preferences were captured verbatim from the user's own words and labelled as such, verified memory carried them into every later task (15/15 vs 0/15). Third, knowledge about the code did not transfer to different later tasks: in a time-split test with 14 newer tasks, memory and automatically written project notes left success unchanged (11/14 and 10/14 vs 11/14) and raised cost by 16–17%.
 
-An experience engine that turns sessions into operational experience did better. It mines tool pitfalls, verifier scripts, the user's corrections and compiled skills, and gives a brief and a review sized by competence. It promotes a lesson only after an A/B test on practice tasks made by mutating past fixes. With this engine a weaker model kept the same success as without memory (11/14) at 14.4% lower cost, and the blind judge's quality score did not fall (3.93 vs 3.79). A second version that added a generic edge-case checklist and a stronger-model advisor did not raise success (10/14), cost more, and scored lower; generic guidance in every session behaves as noise. A third version replaced advice with executable review checks: before finishing, each line the agent added is mutated to see whether the tests notice, and formatting, lint and preference compliance are checked against the starting commit. Over three repetitions (42 runs per version) it raised success to 35/42 against 32/42 for both other versions, with no formatting regressions against ten, for 2% more cost. The judge's score rose to 3.98 against 3.74, but this follows the extra successes: among successful runs the versions differ by at most 0.11. Only one of the three extra successes is clearly linked to a finding, and property tests show that solution to be only partly correct, so the firm effect is on formatting. Stronger checks did not generalize. Property templates, a contract ontology and rules learned from the project's own history were tested on two repositories the design had not seen, one of them with blindly selected tasks. They raised no false alarms but detected almost none of the failures there (0 of 47 in the blind repository), and in agent runs they did not raise success while costing 11–48% more. On the design's own data they had detected 23 of 24, so evaluation on unseen repositories decided the outcome. What did raise success was a stronger second model beside the agent. OMP's built-in advisor, reviewing every turn, raised success from 37 to 45 of 63 at 3.5 times the cost. A "conscience" that speaks up only after repeated mistakes, with a short context, reached 44 of 63 at about 37% of the advisor's cost. The same conscience with the agent's own weaker model gave no gain, and giving the conscience the user's preferences and past resolutions of the same errors did not help: its notes spent corrections on reminders the agent did not need. Making the stronger model the agent instead succeeded more often (51 of 63) at a slightly higher cost per success, so the conscience is the economical road and a strong agent the better one where it is available. The same strong agent did as well without MIHAD (50 of 63): the system's measured value lies with cheaper models. All results are exploratory; the later experiments were repeated three times. The tool has been generalized into a standalone package for ten programming languages. No claim of machine consciousness is made.
+An experience engine that turns sessions into operational experience did better. It mines tool pitfalls, verifier scripts, the user's corrections and compiled skills, and gives a brief and a review sized by competence. It promotes a lesson only after an A/B test on practice tasks made by mutating past fixes. With this engine a weaker model kept the same success as without memory (11/14) at 14.4% lower cost, and the blind judge's quality score did not fall (3.93 vs 3.79). A second version that added a generic edge-case checklist and a stronger-model advisor did not raise success (10/14), cost more, and scored lower; generic guidance in every session behaves as noise. A third version replaced advice with executable review checks: before finishing, each line the agent added is mutated to see whether the tests notice, and formatting, lint and preference compliance are checked against the starting commit. Over three repetitions (42 runs per version) it raised success to 35/42 against 32/42 for both other versions, with no formatting regressions against ten, for 2% more cost. The judge's score rose to 3.98 against 3.74, but this follows the extra successes: among successful runs the versions differ by at most 0.11. Only one of the three extra successes is clearly linked to a finding, and property tests show that solution to be only partly correct, so the firm effect is on formatting. Stronger checks did not generalize. Property templates, a contract ontology and rules learned from the project's own history were tested on two repositories the design had not seen, one of them with blindly selected tasks. They raised no false alarms but detected almost none of the failures there (0 of 47 in the blind repository), and in agent runs they did not raise success while costing 11–48% more. On the design's own data they had detected 23 of 24, so evaluation on unseen repositories decided the outcome. What did raise success was a stronger second model beside the agent. OMP's built-in advisor, reviewing every turn, raised success from 37 to 45 of 63 at 3.5 times the cost. A "conscience" that speaks up only after repeated mistakes, with a short context, reached 44 of 63 at about 37% of the advisor's cost. The same conscience with the agent's own weaker model gave no gain, and giving the conscience the user's preferences and past resolutions of the same errors did not help: its notes spent corrections on reminders the agent did not need. Making the stronger model the agent instead succeeded more often (51 of 63) at a slightly higher cost per success, so the conscience is the economical road and a strong agent the better one where it is available. The same strong agent did as well without MIHAD (50 of 63). A later audit found that six of the 21 bidict tasks could not pass as graded, because the maintainers' fix had also changed a test helper the grading never copied; on the fifteen sound tasks the strong agent solved every one with and without MIHAD, so that benchmark had no headroom left for it, and the system's measured value lies with cheaper models. All results are exploratory; the later experiments were repeated three times. The tool has been generalized into a standalone package for ten programming languages. No claim of machine consciousness is made.
 
 Keywords: coding agents, learning without retraining, agent memory, experience engine, knowledge verification, adoption gate, second-model supervision, evaluation on unseen repositories.
 
@@ -912,9 +912,37 @@ The same run answered the question a reader will ask first: why not make the str
 
 There is no evidence here that MIHAD helps a strong agent. The value of the system around the model shrinks as the model grows stronger. With Haiku, the experience engine cut cost by 14%, the executable checks added successes, and the conscience added seven. With Sonnet, the agent already does what MIHAD would remind it to do: it writes the test, runs it again, and avoids the tool slips. Two benefits were not measured here, because the preferences were stated in every task: carrying the user's preferences from one session to the next, and learning from the user's corrections.
 
+**The benchmark had no headroom.** An audit made after this run (see Integrity of the Experiments) found that six of the 21 bidict tasks could not pass as graded. On the fifteen sound tasks, Sonnet solved 45 of 45 both with and without MIHAD. The absence of a success gain for the strong agent is therefore not a measurement of indifference to help; it is a ceiling. Any further test of value over a strong bare model needs tasks with headroom, and real issues, which are short and under-specified, are exactly that [52].
+
+**Quality beyond pass or fail.** The saved changes of both Sonnet versions were measured after the fact against the maintainers' fixes: change size, files outside the reference, edits that removed assertions from existing tests, new lint findings and formatting regressions. On the sound tasks the two versions differed on one measure only: without MIHAD, Sonnet removed assertions from existing tests in four sessions, mostly by rewriting one test in all three repetitions of a task; with MIHAD, in none. Formatting and lint regressions were zero in both. For a strong agent, then, the measurable quality effect is small and lies in leaving existing tests alone.
+
+**Why escalating to the strong model cannot pay here.** A natural reading of the conscience is a manager that hands the task to the strong model when the cheap one stumbles. The saved sessions show why this cannot save money between these two models. Haiku's price per token is half of Sonnet's, but a Haiku session takes 2.7 times the turns (87 against 32), so a session costs only 30% less ($0.81 against $1.17). The teacher rule fired in 53 of 63 sessions, 34 of which Haiku then solved anyway; handing over at that point would pay for the partial work and a full strong run in most sessions. Even a manager that knew in advance exactly which 19 runs Haiku would fail would save about 12%. Independent work reaches the same conclusion: routing on the task text fails because the text does not reveal difficulty, routing pays only with price gaps of ten times or more, and continuing a weak model's trajectory recovers less than half of the quality gap [53, 54].
+
+**Where this stands in the literature.** The conscience is an instance of a result that three independent 2026 studies report at larger scale: spending the strong model on critique at chosen moments lifts a cheap agent by 10 to 18 points on SWE-bench Verified at a fifth to a tenth of a strong run's cost [55, 56]. Our null results for memory match the field as well: raw or per-task memory is null or harmful, and gains of three to seven points appear only when experiences are abstracted beyond the repository and filtered to one or two items [57, 58]. Haiku's errors here were mostly interface slips (a third were mis-spelled tool names), and interface changes are known to move small models by up to twenty points while moving frontier models' cost rather than their accuracy [59, 60]. The one add-on whose headroom does not shrink with model strength is clarification: about 38% of real issues are under-specified, a strong agent loses up to forty points on them and recovers most of that with one question, yet frontier agents given a way to ask use it correctly in one to nine percent of cases, and the timing of the question decides its value [52, 61, 62]. Detection and timing are the bottleneck, not the question itself.
+
 ### Integrity of the Experiments
 
 While building the engine an audit found that one session of the notes arm had worked inside the no-memory arm's workspace and installed that workspace globally with pip. The arm before it had failed the same task, so there was no correct solution to copy, but the row was contaminated by protocol. It was removed and rerun in isolation, and failed, which lowered the notes result from 11/14 to 10/14. The global install was removed. Workspaces now live in random temporary folders outside the run directory and are deleted after grading, pip refuses global installs, and every result row records isolation flags; an audit of all earlier runs found no other access outside the workspace. Every fault, including the author's own mistakes during implementation, is logged with its cause and treatment.
+
+**A grading flaw on bidict.** Four bidict tasks failed in every version, including the strong agent. An audit graded the maintainers' own fix with the experiment's procedure: it failed six of the 21 tasks and passed the other fifteen. The cause is that the grading copies only the hidden test module from the reference commit, while the fix for those six tasks had also changed a test helper (`tests/bidict_test_fixtures.py`) that the hidden tests import. Four tasks could therefore never pass, and two required the agent to guess the helper's content, which some did. Boltons and more-itertools have no such task. The task builder validated each task on the full reference tree, which hid the gap; it now validates the reference fix under the grading path itself. Every comparison between versions on bidict stands, because all versions share the ceiling, but the percentages do not: Table 27 restates the results on the fifteen sound tasks.
+
+**Table 27. bidict results on the fifteen sound tasks (45 runs per version; the six flawed tasks excluded)**
+
+| Experiment | Version | Agent | All 63 | Sound 45 |
+|---|---|---|---|---|
+| advisor | MIHAD | Haiku | 37 | 34 |
+| advisor | OMP advisor, Sonnet 5.5, every turn | Haiku | 45 | 40 |
+| watch | Conscience, Sonnet 5.5 | Haiku | 44 | 39 |
+| watch | Conscience, Haiku | Haiku | 38 | 36 |
+| conscience memory | Conscience | Haiku | 44 | 40 |
+| conscience memory | Conscience with memory | Haiku | 43 | 39 |
+| final review | Conscience with final review | Haiku | 45 | 42 |
+| engine5 | MIHAD | Haiku | 40 | 37 |
+| engine5 | Engine5 | Haiku | 39 | 36 |
+| strong agent | MIHAD | Sonnet 5.5 | 51 | 45 |
+| strong agent | No MIHAD | Sonnet 5.5 | 50 | 45 |
+
+On the sound tasks the conscience adds five to six successes in 45 over MIHAD alone, the final review two more, and the strong agent is at the ceiling with or without the system. No pinned decision changes.
 
 ### Resources, Limits and Recomputation
 
@@ -928,7 +956,7 @@ In ordinary sessions the agent receives a brief at the start of each request wit
 
 The tool works with three coding agents. With OMP it runs as an extension. With Claude Code and Codex it runs through the agents' hooks, through one bridge: the brief when a request is submitted, live warnings after each tool call, the review when the agent tries to stop (blocking once per request), and session counting at the end of a session.
 
-**Table 27. Language support in the tool**
+**Table 28. Language support in the tool**
 
 | Language | Detection and function lookup | Test runners | Verified in this work |
 |---|---|---|---|
@@ -947,7 +975,7 @@ For languages other than Python, verifier scripts are test files written in the 
 
 Persistent memory can multiply the effect of an error if it is reused or built upon, which is one motive for the adoption gate itself. The design therefore separates source data, the agent's beliefs and the operating policy, checks permissions before retrieval, and records the source and version of every skill.
 
-**Table 28. Risks of continual learning and the proposed tests**
+**Table 29. Risks of continual learning and the proposed tests**
 
 | Risk | Control | What is tested |
 |---|---|---|
@@ -982,7 +1010,7 @@ The language model's weights never changed in any of the coding-agent experiment
 
 ![Fig Overview EN](figures/Fig_Overview_EN.png)
 
-*Figure 9. Change in success rate, and in cost, for every mechanism tested on the coding agent, and for the stronger model as the agent. Each bar is against its own comparison; on 14 tasks one task is 7.1 points, so differences of that size are within noise*
+*Figure 9. Change in success rate, and in cost, for every mechanism tested on the coding agent, and for the stronger model as the agent. The bidict rows are over all 63 runs; six of the 21 tasks were later found unsolvable as graded, which does not change any comparison (Table 27). Each bar is against its own comparison; on 14 tasks one task is 7.1 points, so differences of that size are within noise*
 
 The value of the adoption gate depends on the kind of knowledge. For checkable code knowledge, a strong agent checks for itself, so memory adds no success and raises cost, and knowledge about the code did not transfer to different later tasks, whether kept as verified memory or as project notes. For knowledge the agent cannot discover, such as user preferences, the gate was the condition for an effect: a trustworthy source in the user's verbatim words, a trust label that makes the agent follow the item, and a scope rule that keeps a one-off instruction from becoming a standing one. In the independence test the benefit came from tracking origins, not from the form of the gate.
 
@@ -994,9 +1022,13 @@ What raised the weaker agent's success was a stronger model at its side while it
 
 Giving the conscience more to read, the user's preferences and past resolutions of the same errors, did not help: once the preferences were stated clearly in the task, the agent kept 90% of them on its own, and reminders took the place of corrections.
 
-With the preferences stated, a final reading by the conscience when the agent finished gave precise notes but no clear gain, because they came late for a slow agent. The stronger model as the agent succeeded most (51 of 63) and fastest, at about $1.41 per success against about $1.22 for the cheaper agent with a conscience. The two roads are complementary rather than competing: the conscience is the economical one, and a strong agent the better one where its cost is acceptable. The strong agent did as well without MIHAD as with it (50 against 51 of 63, at nearly the same cost). The measured value of the system around the model therefore shrinks as the model grows stronger: it lifts a cheap agent, while a strong agent already does most of what it would supply. What remains untested for strong agents is what only memory can give: preferences and corrections carried from one session to the next.
+With the preferences stated, a final reading by the conscience when the agent finished gave precise notes but no clear gain, because they came late for a slow agent. The stronger model as the agent succeeded most (51 of 63) and fastest, at about $1.41 per success against about $1.22 for the cheaper agent with a conscience. The two roads are complementary rather than competing: the conscience is the economical one, and a strong agent the better one where its cost is acceptable. The strong agent did as well without MIHAD as with it, and on the sound tasks it solved every one either way: that benchmark had no headroom left for it. The measured value of the system around the model therefore shrinks as the model grows stronger: it lifts a cheap agent, while a strong agent already does most of what it would supply.
+
+Read together with the literature, every mechanism that survived our tests has one shape: the right information, from a source that knows more, at the moment of doubt, in a small amount. The adoption gate applied it to the user's words, the conscience to a stronger model's judgement, the executable checks to observed facts. The kind of knowledge that no model can have, however strong, is the user's intent where the task left it unsaid, and the project's promises that are written nowhere. Independent work shows that this headroom does not shrink with model strength, that agents do not ask on their own, and that detection and timing decide the value of a question. The next mechanism to test follows: a timely question, raised from the agent's behaviour rather than the task text (two cheap readings of the task that disagree at the start; a self-check that fails or an edit undone mid-task; an assumption in the agent's own tests before it finishes), answered first from the project itself and only then by the user, and remembered through the adoption gate so that it is never asked twice. It will be evaluated on under-specified variants of the sound tasks against the bare strong agent, with a simulated user, under a rule pinned before the run.
 
 The next steps follow from this:
+
+- test the timely question against the bare strong agent on under-specified tasks, where the benchmark has headroom;
 
 - measure what only memory can give a strong agent: preferences stated once and corrections made in earlier sessions;
 
@@ -1113,6 +1145,28 @@ Taken together, an agent with a fixed model did become better through what was b
 [50] Virtanen, P., et al. (2020). SciPy 1.0: Fundamental algorithms for scientific computing in Python. Nature Methods, 17, 261–272. https://doi.org/10.1038/s41592-019-0686-2
 
 [51] Seabold, S., & Perktold, J. (2010). Statsmodels: Econometric and statistical modeling with Python. Proceedings of the 9th Python in Science Conference, 92–96. https://doi.org/10.25080/Majora-92bf1922-011
+
+[52] Vijayvargiya, S., et al. (2026). Interactive agents to overcome underspecificity in software engineering. International Conference on Learning Representations. arXiv:2502.13069. https://arxiv.org/abs/2502.13069
+
+[53] Son, J., et al. (2026). SWE-Router: Routing after exploratory turns for software-engineering agents. DL4Code Workshop at ICML 2026. arXiv:2607.00053. https://arxiv.org/abs/2607.00053
+
+[54] The handoff tax: What it costs to continue another model's trajectory (2026). arXiv:2608.24358. https://arxiv.org/abs/2608.24358
+
+[55] Steer, don't solve: Strong-model critics that guide a frozen cheap coding agent (2026). arXiv:2606.21811. https://arxiv.org/abs/2606.21811
+
+[56] When agents go astray: Process reward models for software-engineering agents (2025). arXiv:2509.02360. https://arxiv.org/abs/2509.02360
+
+[57] Chen, S., et al. (2025). SWE-Exp: Experience-driven software issue resolution. arXiv:2507.23361. https://arxiv.org/abs/2507.23361
+
+[58] Wiederhold, C., et al. (2025). CTIM-Rover: Episodic memory for automated program repair. REALM Workshop at ACL 2025. arXiv:2505.23422. https://arxiv.org/abs/2505.23422
+
+[59] Yang, J., Jimenez, C. E., Wettig, A., Lieret, K., Yao, S., Narasimhan, K., & Press, O. (2024). SWE-agent: Agent-computer interfaces enable automated software engineering. Advances in Neural Information Processing Systems, 37. arXiv:2405.15793. https://arxiv.org/abs/2405.15793
+
+[60] CodeStruct: Code agents over structured action spaces (2026). arXiv:2604.05407. https://arxiv.org/abs/2604.05407
+
+[61] HiL-Bench: Do agents know when to ask for help? (2026). arXiv:2604.09408. https://arxiv.org/abs/2604.09408
+
+[62] Ask early, ask late, ask right: When does clarification timing matter for long-horizon agents? (2026). arXiv:2605.07937. https://arxiv.org/abs/2605.07937
 
 ## Appendix A. Memory and Skill Records
 

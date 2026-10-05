@@ -1,6 +1,6 @@
 # Research summary
 
-The full paper is [paper/MIHAD_Research_Paper_EN_v2.4.md](../paper/MIHAD_Research_Paper_EN_v2.4.md); a Word version is in the same folder.
+The full paper is [paper/MIHAD_Research_Paper_EN_v2.5.md](../paper/MIHAD_Research_Paper_EN_v2.5.md); a Word version is in the same folder.
 
 ## The question
 
@@ -25,6 +25,8 @@ Can a coding agent be given memory and experience that make it better over time,
 11. **A strong agent beats a cheap agent with a conscience on success, not on cost.** With the preferences stated, Sonnet 5.5 as the agent reached 51/63 at about $1.41 per success; Haiku with the conscience reached 44/63 at about $1.22 per success. The conscience is the economical road; a strong agent is the better one where its cost is acceptable. A final reading by the conscience when the agent finishes gave precise notes but only 45/63, late for a slow agent; it stays off.
 
 12. **The value of the system shrinks as the model grows stronger.** Sonnet 5.5 as the agent reached 50/63 without MIHAD and 51/63 with it, at nearly the same cost (97.6%); MIHAD added about four minutes per session. A strong agent already writes the test, re-runs it and avoids tool slips. Not measured for strong agents: preferences and corrections carried between sessions.
+
+13. **A grading flaw, disclosed.** Six of the 21 bidict tasks could not pass as graded: the maintainers' fix had also changed a test helper the grading never copied. On the fifteen sound tasks the strong agent solved every one with and without MIHAD (the benchmark had no headroom for it), and the conscience's gain over MIHAD alone stands (39–40 vs 34 of 45). The only quality difference for the strong agent: without MIHAD it removed assertions from existing tests in 4 sessions, with MIHAD in none.
 
 ## Limits
 
