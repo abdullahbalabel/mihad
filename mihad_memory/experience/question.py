@@ -172,9 +172,11 @@ def project_evidence(ws, question, limit=6000):
         return ""
     pattern = "|".join(re.escape(i) for i in ids)
     try:
-        res = subprocess.run(["git", "grep", "-n", "-i", "-E", pattern, "--", "*.rst", "*.md", "*.txt", "docs", "tests"],
+        # Evidence comes from the baseline commit (HEAD), never from the working tree: the agent's own changelog
+        # entry or test would otherwise be quoted back to it as the project's intent.
+        res = subprocess.run(["git", "grep", "-n", "-i", "-E", pattern, "HEAD", "--", "*.rst", "*.md", "*.txt", "docs", "tests"],
                              cwd=ws, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
-        lines = res.stdout.splitlines()
+        lines = [l.split(":", 1)[1] if l.startswith("HEAD:") else l for l in res.stdout.splitlines()]
     except (OSError, subprocess.TimeoutExpired):
         lines = []
     out, size = [], 0
