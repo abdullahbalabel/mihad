@@ -1,4 +1,4 @@
-<!-- Generated from _work/manuscript_v2.2_en.md by _work/export_md_v2.2_en.py -->
+<!-- Generated from _work/manuscript_v2.3_en.md by _work/export_md_v2.3_en.py -->
 <!-- © 2026 Abdullah Mohammed Balabel. Non-commercial use only; see LICENSE. -->
 
 # Better Coding Agents Without Retraining the Model
@@ -7,7 +7,7 @@
 
 Abdullah Mohammed Balabel
 
-Research design and exploratory results — Version 2.2 — October 2026
+Research design and exploratory results — Version 2.3 — October 2026
 
 ## Abstract
 
@@ -17,7 +17,7 @@ Learning from experience carries a risk: storing a conclusion does not make it c
 
 Three results hold across the studies. First, admission by evidence type protects the memory: in the evidence-independence test the gate exceeded the strongest of four required baselines by 12.8 points (92.4% vs 79.6%), although it matched origin-level aggregation, a known treatment of source dependence; and on the coding agent, deliberately planted wrong items were never followed. Second, the clearest positive effect concerns knowledge an agent cannot recover from the code: once standing user preferences were captured verbatim from the user's own words and labelled as such, verified memory carried them into every later task (15/15 vs 0/15). Third, knowledge about the code did not transfer to different later tasks: in a time-split test with 14 newer tasks, memory and automatically written project notes left success unchanged (11/14 and 10/14 vs 11/14) and raised cost by 16–17%.
 
-An experience engine that turns sessions into operational experience did better. It mines tool pitfalls, verifier scripts, the user's corrections and compiled skills, and gives a brief and a review sized by competence. It promotes a lesson only after an A/B test on practice tasks made by mutating past fixes. With this engine a weaker model kept the same success as without memory (11/14) at 14.4% lower cost, and the blind judge's quality score did not fall (3.93 vs 3.79). A second version that added a generic edge-case checklist and a stronger-model advisor did not raise success (10/14), cost more, and scored lower; generic guidance in every session behaves as noise. A third version replaced advice with executable review checks: before finishing, each line the agent added is mutated to see whether the tests notice, and formatting, lint and preference compliance are checked against the starting commit. Over three repetitions (42 runs per version) it raised success to 35/42 against 32/42 for both other versions, with no formatting regressions against ten, for 2% more cost. The judge's score rose to 3.98 against 3.74, but this follows the extra successes: among successful runs the versions differ by at most 0.11. Only one of the three extra successes is clearly linked to a finding, and property tests show that solution to be only partly correct, so the firm effect is on formatting. Stronger checks did not generalize. Property templates, a contract ontology and rules learned from the project's own history were tested on two repositories the design had not seen, one of them with blindly selected tasks. They raised no false alarms but detected almost none of the failures there (0 of 47 in the blind repository), and in agent runs they did not raise success while costing 11–48% more. On the design's own data they had detected 23 of 24, so evaluation on unseen repositories decided the outcome. What did raise success was a stronger second model beside the agent. OMP's built-in advisor, reviewing every turn, raised success from 37 to 45 of 63 at 3.5 times the cost. A "conscience" that speaks up only after repeated mistakes, with a short context, reached 44 of 63 at about 37% of the advisor's cost. The same conscience with the agent's own weaker model gave no gain, and giving the conscience the user's preferences and past resolutions of the same errors did not help: its notes spent corrections on reminders the agent did not need. All results are exploratory; the later experiments were repeated three times. The tool has been generalized into a standalone package for ten programming languages. No claim of machine consciousness is made.
+An experience engine that turns sessions into operational experience did better. It mines tool pitfalls, verifier scripts, the user's corrections and compiled skills, and gives a brief and a review sized by competence. It promotes a lesson only after an A/B test on practice tasks made by mutating past fixes. With this engine a weaker model kept the same success as without memory (11/14) at 14.4% lower cost, and the blind judge's quality score did not fall (3.93 vs 3.79). A second version that added a generic edge-case checklist and a stronger-model advisor did not raise success (10/14), cost more, and scored lower; generic guidance in every session behaves as noise. A third version replaced advice with executable review checks: before finishing, each line the agent added is mutated to see whether the tests notice, and formatting, lint and preference compliance are checked against the starting commit. Over three repetitions (42 runs per version) it raised success to 35/42 against 32/42 for both other versions, with no formatting regressions against ten, for 2% more cost. The judge's score rose to 3.98 against 3.74, but this follows the extra successes: among successful runs the versions differ by at most 0.11. Only one of the three extra successes is clearly linked to a finding, and property tests show that solution to be only partly correct, so the firm effect is on formatting. Stronger checks did not generalize. Property templates, a contract ontology and rules learned from the project's own history were tested on two repositories the design had not seen, one of them with blindly selected tasks. They raised no false alarms but detected almost none of the failures there (0 of 47 in the blind repository), and in agent runs they did not raise success while costing 11–48% more. On the design's own data they had detected 23 of 24, so evaluation on unseen repositories decided the outcome. What did raise success was a stronger second model beside the agent. OMP's built-in advisor, reviewing every turn, raised success from 37 to 45 of 63 at 3.5 times the cost. A "conscience" that speaks up only after repeated mistakes, with a short context, reached 44 of 63 at about 37% of the advisor's cost. The same conscience with the agent's own weaker model gave no gain, and giving the conscience the user's preferences and past resolutions of the same errors did not help: its notes spent corrections on reminders the agent did not need. Making the stronger model the agent instead succeeded more often (51 of 63) at a slightly higher cost per success, so the conscience is the economical road and a strong agent the better one where it is available. All results are exploratory; the later experiments were repeated three times. The tool has been generalized into a standalone package for ten programming languages. No claim of machine consciousness is made.
 
 Keywords: coding agents, learning without retraining, agent memory, experience engine, knowledge verification, adoption gate, second-model supervision, evaluation on unseen repositories.
 
@@ -871,6 +871,36 @@ The memory did not help on any measure. The notes show why:
 
 The memory stays off. The lesson matches the rest of the series: the second voice is valuable for what it knows and when it speaks, and filling its short context with what the agent already has, or what the conscience can see for itself, costs corrections.
 
+**A final reading, and the strong model as the agent.** The conscience wakes only on visible mistakes. The hardest failures are silent: the agent misreads what is wanted, writes a plausible change and finishes without an error. A final review therefore let the conscience read the task and the finished change once, when the agent says it is done, and give at most two corrections about what the task asks, never about style.
+
+The same run answered the question a reader will ask first: why not make the stronger model the agent? Sonnet 5.5 ran as the agent with the same MIHAD engine and checks and no conscience. Both versions used the same tasks with the preferences stated, and were compared with the conscience version of Table 25.
+
+**Table 26. A final review by the conscience, and the stronger model as the agent (bidict, 21 tasks × 3 repetitions, preferences stated)**
+
+| Version | Success | Per repetition | Total cost | Cost per success | Turns | Timed out | Preferences kept |
+|---|---|---|---|---|---|---|---|
+| Haiku + conscience | 44/63 | 14, 16, 14 | about $54 | about $1.22 | 87.4 | 3 | 90% |
+| Haiku + conscience + final review | 45/63 | 14, 16, 15 | about $62 | about $1.38 | 96.4 | 9 | 87% |
+| Sonnet 5.5 as the agent, no conscience | 51/63 | 17, 17, 17 | $72 | about $1.41 | 34.5 | 0 | 97% |
+
+![Fig Strong Agent EN](figures/Fig_Strong_Agent_EN.png)
+
+*Figure 8. Success against total cost: the cheap agent with a conscience, with a final review, and the stronger model as the agent (Table 26)*
+
+**The final review did not meet its rule.** The rule asked for 48 of 63 at no more than 15% extra cost. It reached 45 of 63 at 15.5% extra cost, so it stays off. Its notes were precise; the first one found that the change broke updating values while iterating, a case that had worked before. But:
+
+- **The notes came late in the session.** Sessions that ran past the 20-minute limit rose from three to nine.
+
+- **The weak agent did not always apply them.** In the 29 sessions where the final review spoke, 19 succeeded.
+
+**The stronger model as the agent succeeded most.** Sonnet 5.5 reached 51 of 63, 17 in every repetition. It was faster, about 35 turns per session against 87, and never ran out of time. Its pinned comparison asked whether it succeeds at least as often as the best conscience version at no higher cost per success. It succeeded more, but each success cost about $1.41 against about $1.22 with the conscience. Neither option wins on both measures.
+
+- **Sonnet's seven extra successes over the conscience** cost about $2.6 each. For comparison, the always-on advisor's extra successes cost about $12.5 each.
+
+- **The conscience is the economical road.** It raised the cheap agent about halfway to the strong one, at the lowest cost per success.
+
+- **A strong model is the better agent where it is available.** A second voice corrects, but it does not make the weak agent think like the strong one.
+
 ### Integrity of the Experiments
 
 While building the engine an audit found that one session of the notes arm had worked inside the no-memory arm's workspace and installed that workspace globally with pip. The arm before it had failed the same task, so there was no correct solution to copy, but the row was contaminated by protocol. It was removed and rerun in isolation, and failed, which lowered the notes result from 11/14 to 10/14. The global install was removed. Workspaces now live in random temporary folders outside the run directory and are deleted after grading, pip refuses global installs, and every result row records isolation flags; an audit of all earlier runs found no other access outside the workspace. Every fault, including the author's own mistakes during implementation, is logged with its cause and treatment.
@@ -883,11 +913,11 @@ Equal numbers of review-engine operations do not mean equal processor time, and 
 
 The experiments ended in a tool that applies what proved useful and leaves out what did not. The MIHAD Developmental Memory is a standalone package installed into any project with one command. It writes a project configuration with detected source and test folders and the test command, registers the memory server and the experience extension in the project's OMP configuration, keeps existing entries, backs up the originals, and adds nothing that git tracks.
 
-In ordinary sessions the agent receives a brief at the start of each request with the verified memory items, live warnings during the work, and a review before it finishes. Standing preferences are captured from the user's words. Each session is recorded with a snapshot of the working tree at its start and end; once the user commits, the commit is treated as the final version and what the user changed after the agent becomes a correction to learn from. A dream cycle, run by hand or every N sessions in the background, learns from new sessions, writes verifier scripts, practises on mutated past fixes with and without lessons, and keeps only the lessons that win. The defaults follow the experiments: verified memory on, operational lessons on, executable review checks on, the generic edge-case checklist and the stuck-session advisor off, automatic dreaming off. The conscience is an option the user turns on by naming a stronger model, since it calls a paid model, and its memory of preferences and past resolutions stays off because it did not help; the property checks, contract ontology and learned project rules remain in the code but are off.
+In ordinary sessions the agent receives a brief at the start of each request with the verified memory items, live warnings during the work, and a review before it finishes. Standing preferences are captured from the user's words. Each session is recorded with a snapshot of the working tree at its start and end; once the user commits, the commit is treated as the final version and what the user changed after the agent becomes a correction to learn from. A dream cycle, run by hand or every N sessions in the background, learns from new sessions, writes verifier scripts, practises on mutated past fixes with and without lessons, and keeps only the lessons that win. The defaults follow the experiments: verified memory on, operational lessons on, executable review checks on, the generic edge-case checklist and the stuck-session advisor off, automatic dreaming off. The conscience is an option the user turns on by naming a stronger model, since it calls a paid model, and its memory of preferences and past resolutions and its final review stay off because they did not meet their rules; the property checks, contract ontology and learned project rules remain in the code but are off.
 
 The tool works with three coding agents. With OMP it runs as an extension. With Claude Code and Codex it runs through the agents' hooks, through one bridge: the brief when a request is submitted, live warnings after each tool call, the review when the agent tries to stop (blocking once per request), and session counting at the end of a session.
 
-**Table 26. Language support in the tool**
+**Table 27. Language support in the tool**
 
 | Language | Detection and function lookup | Test runners | Verified in this work |
 |---|---|---|---|
@@ -906,7 +936,7 @@ For languages other than Python, verifier scripts are test files written in the 
 
 Persistent memory can multiply the effect of an error if it is reused or built upon, which is one motive for the adoption gate itself. The design therefore separates source data, the agent's beliefs and the operating policy, checks permissions before retrieval, and records the source and version of every skill.
 
-**Table 27. Risks of continual learning and the proposed tests**
+**Table 28. Risks of continual learning and the proposed tests**
 
 | Risk | Control | What is tested |
 |---|---|---|
@@ -937,11 +967,11 @@ The reproduction package includes the environment description and random seeds, 
 
 ## 17 Conclusion
 
-The language model's weights never changed in any of the coding-agent experiments; every gain and every loss came from the system around it. Figure 8 places every mechanism tested on the coding agent on one scale.
+The language model's weights never changed in any of the coding-agent experiments; every gain and every loss came from the system around it. Figure 9 places every mechanism tested on the coding agent on one scale.
 
 ![Fig Overview EN](figures/Fig_Overview_EN.png)
 
-*Figure 8. Change in a weaker agent's success rate, and in cost, for every mechanism tested on the coding agent. Each bar is against its own comparison; on 14 tasks one task is 7.1 points, so differences of that size are within noise*
+*Figure 9. Change in success rate, and in cost, for every mechanism tested on the coding agent, and for the stronger model as the agent. Each bar is against its own comparison; on 14 tasks one task is 7.1 points, so differences of that size are within noise*
 
 The value of the adoption gate depends on the kind of knowledge. For checkable code knowledge, a strong agent checks for itself, so memory adds no success and raises cost, and knowledge about the code did not transfer to different later tasks, whether kept as verified memory or as project notes. For knowledge the agent cannot discover, such as user preferences, the gate was the condition for an effect: a trustworthy source in the user's verbatim words, a trust label that makes the agent follow the item, and a scope rule that keeps a one-off instruction from becoming a standing one. In the independence test the benefit came from tracking origins, not from the form of the gate.
 
@@ -953,7 +983,11 @@ What raised the weaker agent's success was a stronger model at its side while it
 
 Giving the conscience more to read, the user's preferences and past resolutions of the same errors, did not help: once the preferences were stated clearly in the task, the agent kept 90% of them on its own, and reminders took the place of corrections.
 
+With the preferences stated, a final reading by the conscience when the agent finished gave precise notes but no clear gain, because they came late for a slow agent. The stronger model as the agent succeeded most (51 of 63) and fastest, at about $1.41 per success against about $1.22 for the cheaper agent with a conscience. The two roads are complementary rather than competing: the conscience is the economical one, and a strong agent the better one where its cost is acceptable.
+
 The next steps follow from this:
+
+- measure the system around the model with the strong agent itself (Sonnet with and without MIHAD), since its value there is not yet known;
 
 - test the conscience on a second unseen repository and with other agent models;
 

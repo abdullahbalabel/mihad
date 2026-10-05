@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.2 — 2026-10-05
+
+- **Paper v2.3.** A final review by the conscience, and the stronger model as the agent (Table 26, Figure 8): Sonnet 5.5
+  as the agent reached 51/63 at about $1.41 per success, against 44/63 at about $1.22 for Haiku with the conscience.
+- **`conscience_final` (off).** One reading of the task and the finished change before the agent finishes. Its notes were
+  precise, but it reached 45/63 against 44/63 at 15.5% more cost, so it stays off.
+
 ## 1.3.1 — 2026-10-05
 
 - **Paper v2.2.** New title, *Better Coding Agents Without Retraining the Model*: the model stays fixed, and what learns is

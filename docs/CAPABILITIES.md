@@ -1,6 +1,6 @@
 # Capabilities
 
-Each part below says what it does, how it decides what to trust, and what the experiments showed about it. Numbers come from the research paper ([paper/](../paper/MIHAD_Research_Paper_EN_v2.2.md)); all are exploratory, with one run per cell except the executable-checks experiment (three repetitions).
+Each part below says what it does, how it decides what to trust, and what the experiments showed about it. Numbers come from the research paper ([paper/](../paper/MIHAD_Research_Paper_EN_v2.3.md)); all are exploratory, with one run per cell except the executable-checks experiment (three repetitions).
 
 ## 1. Verified memory (MCP server)
 
