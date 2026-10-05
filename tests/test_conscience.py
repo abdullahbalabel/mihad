@@ -1,6 +1,7 @@
 """The conscience's rule: like a teacher, step in after two mistakes since the last time, and tell the
 advisor whether it was the same mistake again or different ones."""
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -70,6 +71,32 @@ class WatchTests(unittest.TestCase):
                                                      json.dumps({"reason": "r", "note": ""}) + "\n", encoding="utf-8")
         self.assertIn("Fix line 3.", watch.pending_notes(self.state))
         self.assertEqual(watch.pending_notes(self.state), "")
+
+    def test_past_resolution_of_the_same_error(self):
+        failures.detect(Eng(), bash("ruff format x.py", "No module named ruff", True), self.state)
+        mistakes = self.st()["mistakes"]
+        sig = mistakes[0]["sig"]
+        episodes = [{"errors": [
+            {"tool": "bash", "signature": sig, "message": "No module named ruff", "args": {"command": "ruff x"},
+             "resolution": {"command": "python -m black x.py"}},
+            {"tool": "edit", "signature": sig, "args": {}, "resolution": {"path": "y"}},  # another tool: not it
+            {"tool": "bash", "signature": "something else", "args": {}, "resolution": {"command": "z"}}]}]
+        past = watch.past_resolutions(mistakes, episodes)
+        self.assertEqual(len(past), 1)
+        self.assertIn("python -m black", past[0])
+
+    def test_memory_block_holds_preferences(self):
+        prefs = Path(self.tmp.name) / "prefs.txt"
+        prefs.write_text("- Always add a changelog entry.\n", encoding="utf-8")
+        old = dict(os.environ)
+        os.environ["MIHAD_CONSCIENCE_PREFS"] = str(prefs)
+        os.environ["MIHAD_CONSCIENCE_PAST"] = str(Path(self.tmp.name) / "none.jsonl")
+        try:
+            text, held = watch.memory_context(self.tmp.name, [{"sig": "x", "tool": "bash", "step": 1}])
+        finally:
+            os.environ.clear(); os.environ.update(old)
+        self.assertIn("Always add a changelog entry.", text)
+        self.assertEqual(held, {"prefs": 1, "past": 0})
 
 
 if __name__ == "__main__":

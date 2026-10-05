@@ -26,6 +26,17 @@ def _resolution(steps, i):
     return None
 
 
+def _between(steps, i):
+    """What the agent did between an error and the call that resolved it (e.g. re-read the file before the edit)."""
+    out = []
+    for s in steps[i + 1:i + 4]:
+        if s["tool"] == steps[i]["tool"] and not s["error"]:
+            return out
+        arg = s["args"].get("path") or s["args"].get("command") or s["args"].get("pattern") or ""
+        out.append(f"{s['tool']} {str(arg)[:100]}".strip())
+    return None
+
+
 def summarize_steps(steps):
     commands, errors, reads = [], [], {}
     for i, s in enumerate(steps):
@@ -40,7 +51,8 @@ def summarize_steps(steps):
             errors.append({"tool": s["tool"], "signature": normalize_error(s["text"]), "message": first[:160],
                            "args": {k: str(v)[:200] for k, v in s["args"].items() if k != "i"},
                            "resolution": {k: str(v)[:200] for k, v in (_resolution(steps, i) or {}).items()
-                                          if k != "i"} or None})
+                                          if k != "i"} or None,
+                           "between": _between(steps, i)})
     return commands, errors, reads
 
 

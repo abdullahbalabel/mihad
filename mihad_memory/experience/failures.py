@@ -108,7 +108,7 @@ def detect(engine, event, state_path, cwd=None):
     st["streak"] = st["streak"] + 1 if is_error else 0
     if is_error:  # every mistake, remembered with a short signature (the selective advisor looks for patterns)
         sig = normalize_error(text) or normalize_command(str(args.get("command", ""))) or str(tool)
-        st["mistakes"] = (st.get("mistakes", []) + [{"step": st["step"], "sig": sig[:120]}])[-20:]
+        st["mistakes"] = (st.get("mistakes", []) + [{"step": st["step"], "sig": sig[:120], "tool": tool}])[-20:]
     if tool == "bash" and args.get("command"):
         cmd = str(args["command"])
         st.setdefault("commands", []).append(cmd[:200])
@@ -127,7 +127,7 @@ def detect(engine, event, state_path, cwd=None):
                 line = text[max(0, text.rfind("\n", 0, m.start()) + 1):].split("\n", 1)[0].strip()
                 st["self_check_fail"] = {"step": st["step"], "line": line[:200], "command": cmd[:120]}
                 # A check of its own that reports a mismatch is a mistake too, though the command succeeded.
-                st["mistakes"] = (st.get("mistakes", []) + [{"step": st["step"], "sig": "own check: " + line[:100]}])[-20:]
+                st["mistakes"] = (st.get("mistakes", []) + [{"step": st["step"], "sig": "own check: " + line[:100], "tool": tool}])[-20:]
     if is_error:
         sig = normalize_error(text)
         for l in engine.active_lessons():

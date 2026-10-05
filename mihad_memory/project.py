@@ -114,7 +114,7 @@ def _defaults(root):
             "properties": False,
             # The conscience: a stronger model that speaks up after repeated mistakes (conscience.py). Off until a
             # model is set, since it calls a paid model; experiment "watch": +7/63 at about 30% more cost.
-            "conscience_model": None, "conscience_max": 10,
+            "conscience_model": None, "conscience_max": 10, "conscience_memory": False,
             "dream": {"agent": "omp", "auto_after_sessions": 0, "tasks_per_cycle": 4,
                       "model": "anthropic/claude-haiku-4-5",
                       "max_time": "15m", "visible": True}}

@@ -125,7 +125,7 @@ def main(argv=None):
             print(review_mod.review(eng, a.cwd, tests_ok, a.cache, a.state, a.edges, a.checks, a.props)["text"], end="")
     elif a.cmd == "conscience-consult":
         from . import conscience
-        conscience.consult(a.cwd, a.state, a.model, a.reason, a.event_file)
+        conscience.consult(a.cwd, a.state, a.model, a.reason, a.event_file, engine=eng)
     elif a.cmd == "skill":
         if a.action == "list":
             print(json.dumps(eng.get("skills", {}), indent=2))
