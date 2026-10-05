@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.3 — 2026-10-05
+
+- **Paper v2.4.** Sonnet 5.5 as the agent with and without MIHAD: 51/63 against 50/63 at nearly the same cost. The
+  measured gains of MIHAD are for cheaper models; the README now says so.
+
 ## 1.3.2 — 2026-10-05
 
 - **Paper v2.3.** A final review by the conscience, and the stronger model as the agent (Table 26, Figure 8): Sonnet 5.5
