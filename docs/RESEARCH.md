@@ -1,6 +1,6 @@
 # Research summary
 
-The full paper is [paper/MIHAD_Research_Paper_EN_v2.5.md](../paper/MIHAD_Research_Paper_EN_v2.5.md); a Word version is in the same folder.
+The full paper is [paper/MIHAD_Research_Paper_EN_v2.6.md](../paper/MIHAD_Research_Paper_EN_v2.6.md); a Word version is in the same folder.
 
 ## The question
 
@@ -27,6 +27,8 @@ Can a coding agent be given memory and experience that make it better over time,
 12. **The value of the system shrinks as the model grows stronger.** Sonnet 5.5 as the agent reached 50/63 without MIHAD and 51/63 with it, at nearly the same cost (97.6%); MIHAD added about four minutes per session. A strong agent already writes the test, re-runs it and avoids tool slips. Not measured for strong agents: preferences and corrections carried between sessions.
 
 13. **A grading flaw, disclosed.** Six of the 21 bidict tasks could not pass as graded: the maintainers' fix had also changed a test helper the grading never copied. On the fifteen sound tasks the strong agent solved every one with and without MIHAD (the benchmark had no headroom for it), and the conscience's gain over MIHAD alone stands (39–40 vs 34 of 45). The only quality difference for the strong agent: without MIHAD it removed assertions from existing tests in 4 sessions, with MIHAD in none.
+
+14. **A timely question did not recover an under-specified task.** Given only each task's title (the full text held by a simulated user), the strong agent fell from 45/45 to 19/30 on bidict; a mechanism that detects doubt from the agent's behaviour and asks at most twice recovered one success (20/30), and 36/42 vs 37/42 on boltons. The gap was a list of cases, not a single decision, and the agent asked on its own in 6 of 55 cases. Off.
 
 ## Limits
 

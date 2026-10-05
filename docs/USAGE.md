@@ -104,7 +104,7 @@ A cycle needs code with conditions or arithmetic to mutate. Code that only chain
 | `conscience_model` | none | A model stronger than the agent's (e.g. `anthropic/claude-sonnet-5-5`) turns on the conscience: it speaks up after repeated mistakes. Calls a paid model |
 | `conscience_memory` | `false` | Also give the conscience the standing preferences and past resolutions of the same errors. Did not help in the experiment (43/63 vs 44/63, +19% cost) |
 | `conscience_final` | `false` | The conscience also reads the task and the finished change once, before the agent finishes. Precise notes, but 45/63 vs 44/63 in the experiment; off |
-| `question` | `false` | The timely question: detect doubt from the agent's behaviour, answer from the project first, then the user, and remember the answer. Under evaluation |
+| `question` | `false` | The timely question: detect doubt from the agent's behaviour, answer from the project first, then the user, and remember the answer. Did not help in the experiment (20/30 vs 19/30 with title-only tasks); off |
 | `conscience_max` | `10` | At most this many conscience notes per session |
 | `edges` | `false` | Add a generic edge-case checklist to the review. Off because it added cost without raising success |
 | `advisor` | `false` | Let a stuck session consult a stronger model once |

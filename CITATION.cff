@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this software or its findings, please cite the paper."
 title: "MIHAD Developmental Memory"
-version: 1.3.4
+version: 1.3.5
 date-released: 2026-10-05
 authors:
   - family-names: Balabel
@@ -16,5 +16,5 @@ preferred-citation:
       given-names: Abdullah Mohammed
   year: 2026
   month: 10
-  version: "2.5"
-  url: "https://github.com/abdullahbalabel/mihad/blob/main/paper/MIHAD_Research_Paper_EN_v2.5.md"
+  version: "2.6"
+  url: "https://github.com/abdullahbalabel/mihad/blob/main/paper/MIHAD_Research_Paper_EN_v2.6.md"

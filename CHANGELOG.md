@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.5 — 2026-10-05
+
+- **Paper v2.6.** The timely question evaluated against the bare strong agent on title-only tasks with a simulated
+  user: 20/30 against 19/30 on bidict, 36/42 against 37/42 on boltons; not adopted, and why.
+- **`question` fix.** Project evidence for an answer now comes from the starting commit only, never from files the
+  agent wrote in the session.
+
 ## 1.3.4 — 2026-10-05
 
 - **Paper v2.5.** A grading flaw on bidict disclosed (six tasks could not pass as graded; results restated on the
