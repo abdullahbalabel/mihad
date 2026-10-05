@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1 — 2026-10-05
+
+- **Paper v2.2.** New title, *Better Coding Agents Without Retraining the Model*: the model stays fixed, and what learns is
+  the memory and experience around it. Eight figures, including charts of every experiment.
+- **`conscience_memory` (off).** The conscience can also read the standing preferences and how the same errors were
+  resolved in earlier sessions; episodes now record what the agent did between an error and its fix. In the experiment
+  it did not help (43/63 against 44/63, longer sessions, +19% cost), so it stays off.
+
 ## 1.3.0 — 2026-10-05
 
 - **The conscience (optional).** A stronger model that speaks up after repeated mistakes, with a short context and in the

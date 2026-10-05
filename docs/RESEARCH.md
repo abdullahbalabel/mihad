@@ -1,6 +1,6 @@
 # Research summary
 
-The full paper is [paper/MIHAD_Research_Paper_EN_v2.1.md](../paper/MIHAD_Research_Paper_EN_v2.1.md); a Word version is in the same folder.
+The full paper is [paper/MIHAD_Research_Paper_EN_v2.2.md](../paper/MIHAD_Research_Paper_EN_v2.2.md); a Word version is in the same folder.
 
 ## The question
 
@@ -19,6 +19,8 @@ Can a coding agent be given memory and experience that make it better over time,
 
 8. **A stronger second model helps; a well-timed one is affordable.** With Haiku as the agent, OMP's built-in advisor (Sonnet 5.5 reviewing every turn) raised success from 37 to 45 of 63 at 3.5 times the cost. The **conscience**, which speaks up only after repeated mistakes and reads a short context, reached 44 of 63 at about 37% of the advisor's cost. With Haiku itself as the conscience there was no gain (38 of 63): the second voice must know more than the agent.
 9. **Task text does not predict failure.** Local decision models (Qwen3-4B, OpenDecider) could not tell from a task's description which tasks the agent would fail (best AUC 0.60).
+
+10. **More for the conscience to read did not help.** Giving the conscience the user's standing preferences and how the same errors were resolved before gave 43/63 against 44/63, with longer sessions and 19% more cost. Its notes spent corrections on reminders the agent did not need: stating the preferences clearly in the task had already raised compliance from 40% to 90%. The option stays off.
 
 ## Limits
 

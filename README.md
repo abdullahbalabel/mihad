@@ -5,7 +5,7 @@
 <p align="center">
   <a href="LICENSE"><img alt="License: PolyForm Noncommercial" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-0f766e"></a>
   <img alt="Python 3.12+" src="https://img.shields.io/badge/python-3.12%2B-2dd4bf">
-  <img alt="Version 1.3.0" src="https://img.shields.io/badge/version-1.3.0-14b8a6">
+  <img alt="Version 1.3.1" src="https://img.shields.io/badge/version-1.3.1-14b8a6">
   <img alt="Zero dependencies" src="https://img.shields.io/badge/dependencies-none-5eead4">
   <img alt="Agents" src="https://img.shields.io/badge/agents-OMP%20%7C%20Claude%20Code%20%7C%20Codex-115e59">
   <img alt="Tests" src="https://img.shields.io/badge/tests-76%20passing-0d9488">
@@ -18,7 +18,7 @@
   <a href="#-quick-start">Quick start</a> •
   <a href="#-how-it-works">How it works</a> •
   <a href="#-documentation">Docs</a> •
-  <a href="paper/MIHAD_Research_Paper_EN_v2.1.md">Paper</a> •
+  <a href="paper/MIHAD_Research_Paper_EN_v2.2.md">Paper</a> •
   <a href="#-بالعربية">العربية</a>
 </p>
 
@@ -28,7 +28,7 @@
 
 Coding agents start every session like a new hire on day one. They forget yesterday's corrections and repeat the same mistakes. Saving everything they "learn" is not the answer either: an agent that remembers its own wrong conclusions repeats them with confidence.
 
-**MIHAD gives an agent a memory and a body of experience that grow with use, and it adopts nothing without independent evidence.** It is built on a research programme with pinned protocols, real repository history and a blind quality judge. See the [paper](paper/MIHAD_Research_Paper_EN_v2.1.md).
+**MIHAD gives an agent a memory and a body of experience that grow with use, and it adopts nothing without independent evidence.** It is built on a research programme with pinned protocols, real repository history and a blind quality judge. See the [paper](paper/MIHAD_Research_Paper_EN_v2.2.md).
 
 ## ✨ What it does
 
@@ -91,6 +91,8 @@ OMP, Claude Code (terminal and desktop) and Codex. Ten programming languages. St
 | ✅ | Executable review checks: facts about the change, not advice | **35/42** vs 32/42, **0** format regressions vs 10, +2% cost (3 repetitions) |
 
 <sub>Exploratory results. The later experiments have 3 repetitions per arm and include repositories the designs had not seen; the earlier ones one run per cell. Methods and limits are in the paper.</sub>
+
+<p align="center"><img src="paper/figures/Fig_Overview_EN.png" alt="Change in success and cost for every mechanism tested" width="760"></p>
 
 ## 🚀 Quick start
 
@@ -193,7 +195,7 @@ Every lesson has a gate before it is used:
 
 ## 📄 Research
 
-*Adopting Reasoning Outputs Only After Verification: The MIHAD Architecture, a Verified Memory and an Experience Engine for Coding Agents*, version 2.1 ([Markdown](paper/MIHAD_Research_Paper_EN_v2.1.md) · [Word](paper/MIHAD_Research_Paper_EN_v2.1.docx)).
+*Better Coding Agents Without Retraining the Model: Verified Memory, Operational Experience and a Conscience. What Learns Is the System Around the Model*, version 2.2 ([Markdown](paper/MIHAD_Research_Paper_EN_v2.2.md) · [Word](paper/MIHAD_Research_Paper_EN_v2.2.docx)).
 
 <details>
 <summary><b>Cite this work</b></summary>
