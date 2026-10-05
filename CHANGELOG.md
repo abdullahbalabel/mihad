@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.6 — 2026-10-05
+
+- **Paper v2.7.** A one-page summary for the reader before the abstract: final results, where the work helps, strengths and weaknesses, and recommendations for developing the research.
+
 ## 1.3.5 — 2026-10-05
 
 - **Paper v2.6.** The timely question evaluated against the bare strong agent on title-only tasks with a simulated

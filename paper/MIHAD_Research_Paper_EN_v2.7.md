@@ -1,4 +1,4 @@
-<!-- Generated from _work/manuscript_v2.6_en.md by _work/export_md_v2.6_en.py -->
+<!-- Generated from _work/manuscript_v2.7_en.md by _work/export_md_v2.7_en.py -->
 <!-- © 2026 Abdullah Mohammed Balabel. Non-commercial use only; see LICENSE. -->
 
 # Better Coding Agents Without Retraining the Model
@@ -7,7 +7,61 @@
 
 Abdullah Mohammed Balabel
 
-Research design and exploratory results — Version 2.6 — October 2026
+Research design and exploratory results — Version 2.7 — October 2026
+
+## Summary for the Reader: Results, Use, Limits and Recommendations
+
+This page states, before the paper, what the work found, where it can be used, how far it can be trusted, and what we recommend. The evidence is in chapter 12; every number here comes from a protocol committed before its run.
+
+**What we set out to do.** To make a coding agent better over time without changing its model, by building memory, experience and help around it, and to measure that against the bare model, on real commits, with the honest risk that an agent learning from its own work learns its own mistakes.
+
+**Final results, by the strength of the evidence.**
+
+1. *Verified admission works where it is needed.* Adopting knowledge only with independent evidence beat the strongest of four baselines by 12.8 points (92.4% vs 79.6%) in the evidence-independence test, and on the coding agent, deliberately planted wrong items were never followed.
+
+2. *What the model cannot know is where memory pays.* The user's standing preferences, captured verbatim from the user's words and labelled as such, were followed in 15 of 15 later tasks against 0 of 15 without that capture. Simply stating them with each task raised compliance from 40% to 90% with no mechanism at all.
+
+3. *Knowledge about the code does not transfer.* On newer, different tasks, verified memory and project notes left success unchanged and cost 16 to 17% more.
+
+4. *Operational experience and observed facts help a cheap agent.* The experience engine kept success at 14% lower cost; executable review checks raised success from 32 to 35 of 42 and removed all formatting regressions, for 2% more cost.
+
+5. *Generic and learned checks do not generalize.* Property templates, a contract ontology and rules learned from the project's history were precise but caught almost none of the failures on repositories their design had not seen (0 of 47 on one of them).
+
+6. *A stronger second voice at the moment of a mistake is the largest gain for a cheap agent.* The conscience, a stronger model consulted only after repeated mistakes with a short context, raised a cheap agent from 34 to 39 or 40 of 45 sound tasks (37 to 44 of 63 as originally graded) at about 37% of the cost of an advisor that reviews every turn. The same conscience built on the cheap model itself, or given memory to read, or asked for a final review, gave no further gain.
+
+7. *A strong agent needs almost none of this.* With the strong model as the agent, success on the sound tasks was 45 of 45 with and without MIHAD, at nearly the same cost; the one measurable quality difference was that MIHAD kept it from rewriting existing tests (0 against 4 sessions). Per success, the cheap agent with a conscience cost about $1.22 and the strong agent about $1.41.
+
+8. *Neither routing nor asking recovered what a strong agent lacks.* Escalating from the cheap to the strong model cannot pay with a two-fold price gap, because the cheap agent takes 2.7 times the turns; and a timely question, raised from the agent's behaviour and answered by a simulated user, recovered one of eleven successes lost to title-only tasks, because the missing knowledge was a list of cases, not a decision.
+
+9. *A flaw in our own grading, found and disclosed.* Six of 21 tasks in one repository could not pass as graded; the results were restated on the sound tasks, and no decision changed.
+
+**Where this research can be helpful.**
+
+- *Teams running coding agents on cheaper models.* Executable review checks, the conscience and verbatim preference capture are the parts that raised success, cut cost or removed regressions; the tool ships with them, and the conscience is a setting away.
+
+- *Anyone using an agent with memory.* The adoption gate (admit nothing without independent evidence, track sources and derivatives so corrections propagate) and the finding that the user's own words, captured and labelled, are the memory that matters.
+
+- *Researchers.* A set of negative results that are easy to get wrong in the positive direction: in-sample checks that look strong, memory that transfers nothing, routing that cannot pay below a ten-fold price gap, questions that cannot replace a specification. And a method: pinned protocols, unseen repositories, grading audited against the maintainers' own fixes, and faults disclosed with their effect.
+
+**Strengths.** Every protocol and decision rule was committed before its run; tasks are real commits with hidden tests; the later experiments have two or three repetitions and repositories the designs had not seen; every fault, including the author's, is logged with its treatment; and the main positive and negative results agree with independent 2024–2026 studies that used larger benchmarks.
+
+**Weaknesses.** Three small Python repositories; one cheap and one strong model from one provider; two or three repetitions, so differences of one or two tasks are noise; the quality judge is a language model not calibrated against human ratings; the clarification study used a simulated user and an artificial title-only cut; costs are list prices and the conscience's cost is an estimate; the literature review is narrative and several recent references lack full bibliographic detail; one author did the design, the runs and the analysis.
+
+**What we recommend for developing the research.**
+
+1. Replicate the conscience and the executable checks on a larger and more varied set of repositories, including a standard benchmark, and with other model pairs, including a top model as the conscience of a strong agent.
+
+2. Test what only memory can give a strong agent: preferences stated once and corrections made in earlier sessions, carried across sessions, since in the experiments here the preferences were restated in every task.
+
+3. Replace the question to the user with a case list derived from the repository's structure (the operations, directions and classes a changed function touches), and test it against the bare strong agent on title-only tasks.
+
+4. Calibrate the quality judge against human ratings, and measure the strength of the tests the agent writes (mutation score), not only pass or fail.
+
+5. Treat the interface as a cost lever: a third of the cheap agent's errors were mis-spelled tool names, and the literature shows interface changes move small models by up to twenty points and strong models' cost by a quarter.
+
+6. Run the tool on a real project in daily use, where the memory of preferences and corrections can show its value over months rather than tasks.
+
+7. Before submission, complete the literature review with a systematic search of work after 2025 and finish the bibliographic details of the newest references.
 
 ## Abstract
 

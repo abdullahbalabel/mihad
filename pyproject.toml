@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mihad"
-version = "1.3.5"
+version = "1.3.6"
 description = "MIHAD Developmental Memory: verified memory and an experience engine for coding agents"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -26,7 +26,7 @@ mihad-memory = "mihad_memory.cli:main"
 mihad-mcp = "mihad_memory.mcp_server:main"
 
 [project.urls]
-Paper = "https://github.com/abdullahbalabel/mihad/blob/main/paper/MIHAD_Research_Paper_EN_v2.6.md"
+Paper = "https://github.com/abdullahbalabel/mihad/blob/main/paper/MIHAD_Research_Paper_EN_v2.7.md"
 
 [tool.setuptools.packages.find]
 include = ["mihad_memory*"]
