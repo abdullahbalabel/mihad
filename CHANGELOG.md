@@ -2,6 +2,9 @@
 
 ## 1.3.6 — 2026-10-05
 
+- **Paper v2.7, corrected 2026-10-06.** Ten recent references checked against arXiv and corrected (titles and
+  authors); the description of *Steer, Don't Solve* now states its actual finding (trained small critics steer larger
+  agents), which our untrained conscience complements rather than repeats.
 - **Paper v2.7.** A one-page summary for the reader before the abstract: final results, where the work helps, strengths and weaknesses, and recommendations for developing the research.
 
 ## 1.3.5 — 2026-10-05
