@@ -8,7 +8,8 @@
   <img alt="Version 1.3.6" src="https://img.shields.io/badge/version-1.3.6-14b8a6">
   <img alt="Zero dependencies" src="https://img.shields.io/badge/dependencies-none-5eead4">
   <img alt="Agents" src="https://img.shields.io/badge/agents-OMP%20%7C%20Claude%20Code%20%7C%20Codex-115e59">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-76%20passing-0d9488">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-121%20passing-0d9488">
+  <a href="https://m8ven.ai/mcp/abdullahbalabel-mihad-tb1da2?s=readme"><img alt="M8ven Score" src="https://m8ven.ai/badge/mcp/abdullahbalabel-mihad-tb1da2"></a>
 </p>
 
 <p align="center">
