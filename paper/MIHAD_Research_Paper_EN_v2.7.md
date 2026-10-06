@@ -274,7 +274,7 @@ The equations below describe the relation between inputs and outputs and set the
 ### Updating the State Estimate
 
 $$
-b_{t} = F_{\theta}(b_{t-1}, o_{t}, a_{t-1}) \tag{1}
+b_{t} = F_{\theta}(b_{t-1}, o_{t}, a_{t-1}) \qquad (1)
 $$
 
 F updates the state estimate from the previous estimate, the current observation and the previous action, and the estimate must state its uncertainty. If the simulator supplies ready symbolic information, such as object identity, it is declared for all versions and not counted as a learned capability.
@@ -282,11 +282,11 @@ F updates the state estimate from the previous estimate, the current observation
 ### DARA's Regulation Signals
 
 $$
-\mu_{t} = \mathrm{clip}\big(g(h_{t}, u_{t}, \ell_{t}, r_{t}, k_{t}), 0, 1\big) \tag{2}
+\mu_{t} = \mathrm{clip}\big(g(h_{t}, u_{t}, \ell_{t}, r_{t}, k_{t}), 0, 1\big) \qquad (2)
 $$
 
 $$
-g = \sigma(W z_{t} + c), \quad z_{t} = \mathrm{norm}(h_{t}, u_{t}, \ell_{t}, r_{t}, k_{t}) \tag{3}
+g = \sigma(W z_{t} + c), \quad z_{t} = \mathrm{norm}(h_{t}, u_{t}, \ell_{t}, r_{t}, k_{t}) \qquad (3)
 $$
 
 h is the resource state (remaining compute budget and working-memory fill), u the uncertainty (variance of the world model's predictions in simulation, variance of several answers to the same request in the language track), ℓ the learning progress (Equation 6), r the declared risk of the action, and k the share of contradicting evidence among what was retrieved. norm standardizes each indicator on development data, and the logistic function σ yields a three-element signal vector μ, one element per knob. The experiment starts with a hand-written, interpretable W and then tests learning it with a tuning budget equal to the fixed alternative. A result showing that the fixed setting is enough is accepted as useful.
@@ -294,11 +294,11 @@ h is the resource state (remaining compute budget and working-memory fill), u th
 ### Choosing a Permitted Action
 
 $$
-A_{t}^{safe} = \{\, a \in A(d_{t}) : S(a, b_{t}, p_{0}) = 1 \,\} \tag{4}
+A_{t}^{safe} = \{\, a \in A(d_{t}) : S(a, b_{t}, p_{0}) = 1 \,\} \qquad (4)
 $$
 
 $$
-a_{t} = \arg\max_{a \in A_{t}^{safe}} \big[ E(U \mid a, b_{t}) + \beta_{t}\, IG(a) - \lambda_{t}\, \mathrm{Cost}(a) \big] \tag{5}
+a_{t} = \arg\max_{a \in A_{t}^{safe}} \big[ E(U \mid a, b_{t}) + \beta_{t}\, IG(a) - \lambda_{t}\, \mathrm{Cost}(a) \big] \qquad (5)
 $$
 
 A gives the actions the agent can perform given its capabilities, and S checks what the operating policy allows. Equation 5 then chooses an action balancing task utility U, expected information gain IG and cost, a form close to active inference [38]. The safe flag means the action passed the specified check, not that it is safe in every circumstance. If no action passes, the system stops or asks for authorized help.
@@ -306,7 +306,7 @@ A gives the actions the agent can perform given its capabilities, and S checks w
 ### Measuring Learning Progress
 
 $$
-\ell_{t} = \max\big(0,\; L_{before}(P_{t}) - L_{after}(P_{t})\big) \tag{6}
+\ell_{t} = \max\big(0,\; L_{before}(P_{t}) - L_{after}(P_{t})\big) \qquad (6)
 $$
 
 The equation compares prediction error before and after an update on a probe set P not used in the update, without revealing the final test. Because the measure can be noisy or exploited, it is compared with prediction error alone, and unlearnable random data are added to expose a system that keeps exploring noise.
@@ -314,7 +314,7 @@ The equation compares prediction error before and after an update on a probe set
 ### Ranking Retrieved Records
 
 $$
-\mathrm{Score}(m, q) = \sum_{j=1}^{J} w_{j} f_{j}(m, q) \tag{7}
+\mathrm{Score}(m, q) = \sum_{j=1}^{J} w_{j} f_{j}(m, q) \qquad (7)
 $$
 
 The score of record m for request q combines factors such as relevance, quality of evidence, temporal fit and the cost of adding the record to the context. Checking access and adoption status precedes ranking, so high similarity never exposes unauthorized information. Search rank is kept separate from correctness: an old fact may need review, but age does not make it less true. In the deployed memory, a relevance gate returns at most three items, requires a distinctive query word, and drops items below a fixed fraction of the top score; returning nothing is preferred to returning near misses.
@@ -322,11 +322,11 @@ The score of record m for request q combines factors such as relevance, quality 
 ### The Adoption Rule
 
 $$
-V_{\kappa}(c) = \frac{1}{n} \sum_{i=1}^{n} v_{\kappa}(c, e_{i}) \tag{8}
+V_{\kappa}(c) = \frac{1}{n} \sum_{i=1}^{n} v_{\kappa}(c, e_{i}) \qquad (8)
 $$
 
 $$
-\mathrm{adopt}(c) = 1 \iff n_{ind}(c) \ge n_{\kappa} \;\wedge\; V_{\kappa}(c) \ge \tau_{\kappa} \;\wedge\; S(c, p_{0}) = 1 \tag{9}
+\mathrm{adopt}(c) = 1 \iff n_{ind}(c) \ge n_{\kappa} \;\wedge\; V_{\kappa}(c) \ge \tau_{\kappa} \;\wedge\; S(c, p_{0}) = 1 \qquad (9)
 $$
 
 Candidate c has a type κ from Table 4, and each type has a checker v applied to each piece of evidence e, returning 1 on success and 0 on failure; V is the success rate over the evidence. The candidate is adopted when its independent evidence reaches the minimum for its type, its success rate reaches the threshold τ for its type, and it violates no protected constraint. Two pieces of evidence are independent when they share no source and neither was derived from the other, as recorded in the provenance log rather than judged by the model. Raising the threshold lowers false acceptance, raises false rejection and slows learning; both rates are therefore reported together.
